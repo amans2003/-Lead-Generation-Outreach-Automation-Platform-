@@ -22,6 +22,7 @@ const scraperRouter   = require('./scraper.routes');
 const outreachRouter  = require('./outreach.routes');
 const campaignRouter  = require('./campaign.routes');
 const analyticsRouter = require('./analytics.routes');
+const dashboardRouter = require('./dashboard.routes');
 
 const router = express.Router();
 
@@ -47,5 +48,6 @@ router.use('/scraper',    scraperRouter);
 router.use('/outreach',   outreachRouter);
 router.use('/campaigns',  campaignRouter);
 router.use('/analytics',  analyticsRouter);
+router.use('/dashboard',  dashboardRouter);
 
 module.exports = router;

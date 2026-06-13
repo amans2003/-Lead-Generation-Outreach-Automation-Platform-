@@ -54,34 +54,34 @@ function emitProgress(event, payload) {
 async function processScraperJob(job) {
   logger.info('Scraper job started', { jobId: job.id, data: job.data });
 
-  // Determine or create the ScraperJob document for today
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  let scraperJobDoc = await ScraperJob.findOne({ jobDate: today });
 
-  if (!scraperJobDoc) {
-    scraperJobDoc = await ScraperJob.create({
+  // The controller already created the ScraperJob doc and passed its ID in job.data.
+  // For cron-triggered runs that bypass the controller, create one if missing.
+  const existingId = job.data && job.data.scraperJobId;
+  let scraperJobId;
+
+  if (existingId) {
+    scraperJobId = existingId;
+  } else {
+    const newDoc = await ScraperJob.create({
       jobDate: today,
       status: 'running',
       targetCount: env.SCRAPER_DAILY_TARGET,
       startedAt: new Date(),
     });
-  } else {
-    scraperJobDoc.status = 'running';
-    scraperJobDoc.startedAt = scraperJobDoc.startedAt || new Date();
-    await scraperJobDoc.save();
+    scraperJobId = newDoc._id.toString();
   }
 
-  // Emit start event to connected clients
   emitProgress('scraper:started', {
     jobId: job.id,
-    scraperJobId: scraperJobDoc._id,
+    scraperJobId,
     jobDate: today,
   });
 
   await job.updateProgress(5);
 
-  // Lazy-load ScraperOrchestrator to avoid circular deps at module load time
-  // It is expected to live at: src/services/scraper/ScraperOrchestrator.js
+  // Lazy-load to avoid circular deps at boot time
   let ScraperOrchestrator;
   try {
     ScraperOrchestrator = require('../../scraper/ScraperOrchestrator');
@@ -89,56 +89,15 @@ async function processScraperJob(job) {
     throw new Error('ScraperOrchestrator not found: ' + err.message);
   }
 
-  // Progress callback forwarded by the orchestrator (optional contract)
-  const onProgress = async (progressData) => {
-    const pct = progressData.percent || 0;
-    await job.updateProgress(pct);
-
-    // Persist incremental stats
-    if (progressData.scrapedCount !== undefined) {
-      scraperJobDoc.scrapedCount = progressData.scrapedCount;
-    }
-    if (progressData.newCount !== undefined) {
-      scraperJobDoc.newCount = progressData.newCount;
-    }
-    if (progressData.duplicateCount !== undefined) {
-      scraperJobDoc.duplicateCount = progressData.duplicateCount;
-    }
-    if (progressData.errorCount !== undefined) {
-      scraperJobDoc.errorCount = progressData.errorCount;
-    }
-    if (progressData.log) {
-      scraperJobDoc.logs.push(progressData.log);
-    }
-    await scraperJobDoc.save();
-
-    emitProgress('scraper:progress', {
-      jobId: job.id,
-      scraperJobId: scraperJobDoc._id,
-      ...progressData,
-    });
-  };
-
-  const result = await ScraperOrchestrator.runDailyScrape({ onProgress, jobData: job.data });
-
-  // Persist final stats
-  scraperJobDoc.status = 'completed';
-  scraperJobDoc.completedAt = new Date();
-  if (result) {
-    if (result.scrapedCount !== undefined) scraperJobDoc.scrapedCount = result.scrapedCount;
-    if (result.newCount !== undefined) scraperJobDoc.newCount = result.newCount;
-    if (result.duplicateCount !== undefined) scraperJobDoc.duplicateCount = result.duplicateCount;
-    if (result.errorCount !== undefined) scraperJobDoc.errorCount = result.errorCount;
-    if (result.sourceStats) scraperJobDoc.sourceStats = result.sourceStats;
-    if (result.log) scraperJobDoc.logs.push(result.log);
-  }
-  await scraperJobDoc.save();
+  // runDailyScrape expects the ScraperJob MongoDB ObjectId string.
+  // ScraperOrchestrator reads global.io for Socket.io — no injection needed here.
+  const result = await ScraperOrchestrator.runDailyScrape(scraperJobId);
 
   await job.updateProgress(100);
 
   emitProgress('scraper:completed', {
     jobId: job.id,
-    scraperJobId: scraperJobDoc._id,
+    scraperJobId,
     result,
   });
 

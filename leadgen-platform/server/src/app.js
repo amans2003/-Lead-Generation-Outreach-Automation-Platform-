@@ -46,9 +46,17 @@ app.use(
 );
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
+// In development, accept any localhost origin (Vite may use a different port).
+const corsOrigin = env.NODE_ENV === 'production'
+  ? env.CLIENT_URL
+  : (origin, cb) => {
+      if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin)) return cb(null, true);
+      cb(new Error('Not allowed by CORS'));
+    };
+
 app.use(
   cors({
-    origin:      env.CLIENT_URL,
+    origin:      corsOrigin,
     credentials: true,                // allow cookies to be sent cross-origin
     methods:     ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
@@ -104,10 +112,8 @@ const io = new SocketIOServer(httpServer, {
 // without creating circular dependencies.
 global.io = io;
 
-// Inject io into the ScraperOrchestrator
-ScraperOrchestrator.constructor.prototype.setIO
-  ? ScraperOrchestrator.setIO(io)       // class static method
-  : ScraperOrchestrator.setIO && ScraperOrchestrator.setIO(io);
+// ScraperOrchestrator uses global.io for Socket.io events (set above).
+// No explicit injection needed — the orchestrator reads global.io at emit time.
 
 io.on('connection', (socket) => {
   logger.info('Socket.io: client connected', { socketId: socket.id });

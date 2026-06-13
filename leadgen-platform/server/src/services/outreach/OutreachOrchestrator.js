@@ -80,8 +80,8 @@ class OutreachOrchestrator {
     // ------------------------------------------------------------------
     let score = 0;
     try {
-      const leadScorer = getLeadScorer();
-      score = await leadScorer.score(lead);
+      const { scoreLead } = getLeadScorer();
+      score = await scoreLead(lead);
     } catch (scorerErr) {
       logger.warn('[OutreachOrchestrator] LeadScorer failed - using score 0', {
         leadId,
@@ -123,16 +123,11 @@ class OutreachOrchestrator {
     // 3. Generate per-channel messages
     // ------------------------------------------------------------------
     const messages = {};
-    const messageGenerator = getMessageGenerator();
+    const { generateOutreachMessage } = getMessageGenerator();
 
     for (const channel of channels) {
       try {
-        messages[channel] = await messageGenerator.generate({
-          lead,
-          channel,
-          campaign,
-          score,
-        });
+        messages[channel] = await generateOutreachMessage(lead, channel);
       } catch (genErr) {
         logger.warn('[OutreachOrchestrator] MessageGenerator failed for channel', {
           leadId,
@@ -140,7 +135,7 @@ class OutreachOrchestrator {
           error: genErr.message,
         });
         // Fall back to campaign template if AI generation fails
-        messages[channel] = campaign.messageTemplate || this._defaultMessage(lead, channel);
+        messages[channel] = { message: campaign.messageTemplate || this._defaultMessage(lead, channel) };
       }
     }
 
@@ -165,12 +160,16 @@ class OutreachOrchestrator {
       }
 
       const jobName = channel + ':' + leadId;
+      // message is { message, subject? } from MessageGenerator
+      const msgText    = (message && message.message) ? message.message : String(message || '');
+      const msgSubject = (message && message.subject) ? message.subject : undefined;
       const jobData = {
         leadId,
         campaignId,
         channel,
         to:        destination,
-        message,
+        message:   msgText,
+        subject:   msgSubject,
         score,
         attempt:   1,
       };

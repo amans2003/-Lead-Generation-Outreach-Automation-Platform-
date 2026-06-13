@@ -3,6 +3,12 @@
 require('dotenv').config();
 const Joi = require('joi');
 
+// In development/test, third-party API credentials are optional so the server
+// can start without real Twilio, Gmail, or Anthropic keys.  In production all
+// external credentials must be present.
+const isProd = process.env.NODE_ENV === 'production';
+const extRequired = (schema) => (isProd ? schema.required() : schema.optional().allow('').default(''));
+
 const envSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid('development', 'production', 'test')
@@ -10,7 +16,7 @@ const envSchema = Joi.object({
   PORT: Joi.number().integer().default(5000),
 
   // Client
-  CLIENT_URL: Joi.string().uri().required(),
+  CLIENT_URL: Joi.string().uri().default('http://localhost:3000'),
 
   // Database
   MONGODB_URI: Joi.string().required(),
@@ -22,20 +28,20 @@ const envSchema = Joi.object({
   JWT_REFRESH_SECRET: Joi.string().min(32).required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
-  // Anthropic / AI
-  ANTHROPIC_API_KEY: Joi.string().required(),
+  // Anthropic / AI (optional in dev)
+  ANTHROPIC_API_KEY: extRequired(Joi.string()),
 
-  // Twilio / SMS
-  TWILIO_ACCOUNT_SID: Joi.string().required(),
-  TWILIO_AUTH_TOKEN: Joi.string().required(),
-  TWILIO_PHONE_NUMBER: Joi.string().required(),
+  // Twilio / SMS (optional in dev)
+  TWILIO_ACCOUNT_SID: extRequired(Joi.string()),
+  TWILIO_AUTH_TOKEN: extRequired(Joi.string()),
+  TWILIO_PHONE_NUMBER: extRequired(Joi.string()),
 
-  // Email / Gmail OAuth
+  // Email / Gmail OAuth (optional in dev)
   EMAIL_SERVICE: Joi.string().default('gmail'),
-  EMAIL_USER: Joi.string().email().required(),
-  GMAIL_CLIENT_ID: Joi.string().required(),
-  GMAIL_CLIENT_SECRET: Joi.string().required(),
-  GMAIL_REFRESH_TOKEN: Joi.string().required(),
+  EMAIL_USER: extRequired(Joi.string().email({ tlds: { allow: false } })),
+  GMAIL_CLIENT_ID: extRequired(Joi.string()),
+  GMAIL_CLIENT_SECRET: extRequired(Joi.string()),
+  GMAIL_REFRESH_TOKEN: extRequired(Joi.string()),
 
   // WhatsApp
   WHATSAPP_SESSION_PATH: Joi.string().default('./whatsapp-session'),

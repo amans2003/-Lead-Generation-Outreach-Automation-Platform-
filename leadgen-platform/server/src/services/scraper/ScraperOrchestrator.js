@@ -24,7 +24,8 @@ const logger = require('../../config/logger');
 const env = require('../../config/env');
 const { SOURCES, TARGET_CITIES, CATEGORIES } = require('../../utils/constants');
 
-// Shared Socket.io instance - set via ScraperOrchestrator.setIO(io)
+// Socket.io accessor — uses global.io set by app.js (avoids circular-require)
+// The static setIO() method is kept for backwards compat but not required.
 let _io = null;
 
 // Lazy getters to avoid circular-require at module load time
@@ -170,11 +171,12 @@ class ScraperOrchestrator {
               totalDuplicates += 1;
               continue;
             }
-            const isDuplicate = await dedupService.checkPhone(rawLead.phone);
-            if (isDuplicate) {
+            const dupResult = await dedupService.checkPhone(rawLead.phone);
+            if (!dupResult.isNew) {
               totalDuplicates += 1;
             } else {
-              newLeads.push(rawLead);
+              // Carry dedup result so markAsSeen can use the hash without re-hashing
+              newLeads.push({ ...rawLead, _dedupResult: dupResult });
             }
           }
 
@@ -202,7 +204,10 @@ class ScraperOrchestrator {
                 scrapeDate:   date,
               });
 
-              await dedupService.registerPhone(leadData.phone, queryItem.source);
+              const { phoneHash, normalizedPhone } = leadData._dedupResult || {};
+              if (phoneHash && normalizedPhone) {
+                await dedupService.markAsSeen(phoneHash, normalizedPhone, queryItem.source);
+              }
 
               totalNew += 1;
               todayLeadIds.push(lead._id);
@@ -408,11 +413,13 @@ class ScraperOrchestrator {
 
   /**
    * Broadcasts a scraper:progress Socket.io event.
+   * Uses global.io (set in app.js) or the _io override from setIO().
    * @private
    */
   _emitProgress(payload) {
-    if (_io) {
-      _io.emit('scraper:progress', payload);
+    const io = _io || global.io;
+    if (io) {
+      io.emit('scraper:progress', payload);
     }
   }
 

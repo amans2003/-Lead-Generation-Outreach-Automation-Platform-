@@ -7,6 +7,7 @@ import {
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import useRealTimeLeads from '../hooks/useRealTimeLeads';
+import useScraperStore from '../store/scraperStore';
 import ScraperService from '../services/scraper.service';
 
 dayjs.extend(relativeTime);
@@ -343,7 +344,23 @@ ScraperStatus.propTypes = {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ScraperPage() {
-  const { isConnected, scraperRunning, stats, jobHistory, queryRotation } = useRealTimeLeads();
+  const { isConnected } = useRealTimeLeads();
+  const { isRunning: scraperRunning, progress } = useScraperStore();
+
+  // Map scraperStore.progress fields to what ScraperControl/ScraperStatus expect
+  const stats = {
+    rawScraped:         progress.scraped       || 0,
+    newToday:           progress.new           || 0,
+    duplicatesFiltered: progress.duplicates    || 0,
+    progress:           progress.percent       || 0,
+    activeSource:       progress.source        || '',
+    currentQuery:       '',
+    queriesTotal:       0,
+    queriesCompleted:   0,
+    leadsPerMinute:     0,
+  };
+  const jobHistory    = [];
+  const queryRotation = [];
 
   const [enabledSources, setEnabledSources] = useState(
     ALL_SOURCES.map((s) => s.id)

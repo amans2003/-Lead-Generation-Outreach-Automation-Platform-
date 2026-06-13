@@ -4,8 +4,8 @@ import ProtectedRoute from './ProtectedRoute.jsx';
 import LoadingSpinner from '../components/common/LoadingSpinner.jsx';
 
 // Public pages
-const LoginPage    = lazy(() => import('../pages/LoginPage.jsx'));
-const RegisterPage = lazy(() => import('../pages/RegisterPage.jsx'));
+const LoginPage    = lazy(() => import('../pages/auth/LoginPage.jsx'));
+const RegisterPage = lazy(() => import('../pages/auth/RegisterPage.jsx'));
 
 // Protected pages
 const DashboardPage       = lazy(() => import('../pages/DashboardPage.jsx'));

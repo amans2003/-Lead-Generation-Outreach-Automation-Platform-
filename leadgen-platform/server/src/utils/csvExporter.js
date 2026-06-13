@@ -94,4 +94,26 @@ async function exportLeadsToCSV(leads, filePath) {
   return absolutePath;
 }
 
-module.exports = { exportLeadsToCSV, LEAD_COLUMNS };
+/**
+ * Serializes an array of lead objects to a CSV string (no file I/O).
+ * @param {object[]} leads
+ * @returns {string}
+ */
+function exportToCSVString(leads) {
+  if (!Array.isArray(leads)) {
+    throw new TypeError('exportToCSVString: "leads" must be an array.');
+  }
+
+  const header = LEAD_COLUMNS.map((c) => `"${c.title}"`).join(',');
+  const rows = leads.map((lead) => {
+    const flat = flattenLead(lead);
+    return LEAD_COLUMNS.map((c) => {
+      const val = flat[c.id] == null ? '' : String(flat[c.id]);
+      return `"${val.replace(/"/g, '""')}"`;
+    }).join(',');
+  });
+
+  return [header, ...rows].join('\r\n');
+}
+
+module.exports = { exportLeadsToCSV, exportToCSVString, LEAD_COLUMNS };

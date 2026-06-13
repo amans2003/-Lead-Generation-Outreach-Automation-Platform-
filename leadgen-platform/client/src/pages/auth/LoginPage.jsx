@@ -1,32 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-
-// Hook interface assumed: useAuth returns { login, loading, error }
-// Replace with your actual hook location
-function useAuth() {
-  // Stub — replace with: import { useAuth } from '../../hooks/useAuth';
-  return {
-    login: async (email, password) => {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Login failed');
-      }
-      const { token } = await res.json();
-      localStorage.setItem('token', token);
-    },
-    loading: false,
-    error: null,
-  };
-}
+import useAuthStore from '../../store/authStore.js';
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -42,7 +20,16 @@ function LoginPage() {
     }
     setLoading(true);
     try {
-      await login(form.email, form.password);
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Login failed');
+      const { accessToken, user } = data.data || data;
+      setAuth(user, accessToken);
+      localStorage.setItem('token', accessToken);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');

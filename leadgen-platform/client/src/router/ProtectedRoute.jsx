@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import useAuthStore from '../stores/authStore.js';
+import useAuthStore from '../store/authStore.js';
 import LoadingSpinner from '../components/common/LoadingSpinner.jsx';
 import PageLayout from '../components/layout/PageLayout.jsx';
 

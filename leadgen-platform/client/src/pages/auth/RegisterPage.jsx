@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import useAuthStore from '../../store/authStore.js';
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
@@ -25,14 +27,16 @@ function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Registration failed');
-      localStorage.setItem('token', data.token);
+      const { accessToken, user } = data.data || data;
+      setAuth(user, accessToken);
+      localStorage.setItem('token', accessToken);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);

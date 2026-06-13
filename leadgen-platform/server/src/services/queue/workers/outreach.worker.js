@@ -86,13 +86,12 @@ async function processOutreachJob(job) {
   try {
     // 2. Resolve or generate message
     let message = providedMessage;
+    let subject = job.data.subject || 'Exciting Opportunity for Your Business';
     if (!message || !message.trim()) {
-      const MessageGenerator = getMessageGenerator();
-      message = await MessageGenerator.generateMessage({
-        lead,
-        channel,
-        campaignId,
-      });
+      const { generateOutreachMessage } = getMessageGenerator();
+      const genResult = await generateOutreachMessage(lead, channel);
+      message = genResult.message;
+      if (genResult.subject) subject = genResult.subject;
     }
 
     // Persist the final message text
@@ -110,7 +109,7 @@ async function processOutreachJob(job) {
       if (!lead.email) throw new Error('Lead has no email address');
       sentResult = await EmailService.send({
         to: lead.email,
-        subject: 'We would love to connect',
+        subject,
         message,
         lead,
       });

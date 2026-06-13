@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import LeadTable from '../components/leads/LeadTable';
 import LeadDetailModal from '../components/leads/LeadDetailModal';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || '';
 const token = () => localStorage.getItem('token');
 
 async function apiFetch(path, options = {}) {
@@ -55,8 +55,8 @@ function GoodLeadsPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await apiFetch('/api/leads?status=good_lead&limit=1000');
-      setLeads(data.leads || data.data || data);
+      const data = await apiFetch('/api/v1/leads?status=good_lead&limit=1000');
+      setLeads(data.data?.leads || data.leads || []);
     } catch (err) {
       setError('Failed to load good leads.');
     } finally {
@@ -68,7 +68,7 @@ function GoodLeadsPage() {
 
   async function handleStatusChange(id, newStatus) {
     try {
-      await apiFetch(`/api/leads/${id}`, {
+      await apiFetch(`/api/v1/leads/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
@@ -83,14 +83,14 @@ function GoodLeadsPage() {
   async function handleDelete(id) {
     if (!window.confirm('Delete this lead?')) return;
     try {
-      await apiFetch(`/api/leads/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/v1/leads/${id}`, { method: 'DELETE' });
       setLeads(prev => prev.filter(l => (l._id || l.id) !== id));
     } catch { setError('Delete failed.'); }
   }
 
   async function handleBulkDelete(ids) {
     try {
-      await apiFetch('/api/leads/bulk-delete', {
+      await apiFetch('/api/v1/leads/bulk-delete', {
         method: 'POST',
         body: JSON.stringify({ ids }),
       });

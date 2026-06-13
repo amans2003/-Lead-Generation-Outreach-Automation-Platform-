@@ -3,7 +3,7 @@ import LeadFilters from '../components/leads/LeadFilters';
 import LeadTable from '../components/leads/LeadTable';
 import LeadDetailModal from '../components/leads/LeadDetailModal';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || '';
 const token = () => localStorage.getItem('token');
 
 async function apiFetch(path, options = {}) {
@@ -46,8 +46,8 @@ function LeadsPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await apiFetch('/api/leads' + buildQuery(f));
-      setLeads(data.leads || data.data || data);
+      const data = await apiFetch('/api/v1/leads' + buildQuery(f));
+      setLeads(data.data?.leads || data.leads || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,7 +64,7 @@ function LeadsPage() {
 
   async function handleStatusChange(id, newStatus) {
     try {
-      await apiFetch(`/api/leads/${id}`, {
+      await apiFetch(`/api/v1/leads/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
@@ -78,7 +78,7 @@ function LeadsPage() {
   async function handleDelete(id) {
     if (!window.confirm('Delete this lead?')) return;
     try {
-      await apiFetch(`/api/leads/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/v1/leads/${id}`, { method: 'DELETE' });
       setLeads(prev => prev.filter(l => (l._id || l.id) !== id));
       notify('Lead deleted');
     } catch (err) {
@@ -88,7 +88,7 @@ function LeadsPage() {
 
   async function handleBulkDelete(ids) {
     try {
-      await apiFetch('/api/leads/bulk-delete', {
+      await apiFetch('/api/v1/leads/bulk-delete', {
         method: 'POST',
         body: JSON.stringify({ ids }),
       });

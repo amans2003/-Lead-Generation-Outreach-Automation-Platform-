@@ -5,7 +5,7 @@ import LeadChart from '../components/dashboard/LeadChart';
 import OutreachProgress from '../components/dashboard/OutreachProgress';
 import RecentLeads from '../components/dashboard/RecentLeads';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || '';
 const token = () => localStorage.getItem('token');
 
 async function apiFetch(path) {
@@ -62,14 +62,14 @@ function DashboardPage() {
   const loadDashboard = useCallback(async () => {
     try {
       const [statsData, chartRes, recentRes, funnelRes] = await Promise.all([
-        apiFetch('/api/dashboard/stats'),
-        apiFetch('/api/dashboard/chart?days=30'),
-        apiFetch('/api/leads?limit=10&sort=-createdAt'),
-        apiFetch('/api/dashboard/funnel'),
+        apiFetch('/api/v1/dashboard/stats'),
+        apiFetch('/api/v1/dashboard/chart?days=30'),
+        apiFetch('/api/v1/leads?limit=10&sort=-createdAt'),
+        apiFetch('/api/v1/dashboard/funnel'),
       ]);
       setStats(statsData);
-      setChartData(chartRes.data || chartRes);
-      setRecentLeads(recentRes.leads || recentRes.data || recentRes);
+      setChartData(chartRes.data || []);
+      setRecentLeads(recentRes.data?.leads || recentRes.leads || []);
       setFunnelData(funnelRes);
     } catch (err) {
       setError('Failed to load dashboard data.');

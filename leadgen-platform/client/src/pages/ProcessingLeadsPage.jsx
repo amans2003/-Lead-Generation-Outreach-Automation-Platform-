@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import LeadTable from '../components/leads/LeadTable';
 import LeadDetailModal from '../components/leads/LeadDetailModal';
 
-const API = import.meta.env.VITE_API_URL || '';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const token = () => localStorage.getItem('token');
 
 async function apiFetch(path, options = {}) {
@@ -14,26 +14,25 @@ async function apiFetch(path, options = {}) {
       ...options.headers,
     },
   });
-  if (!res.ok) throw new Error('API error');
+  if (!res.ok) throw new Error('API error ' + res.status);
   return res.json();
 }
 
-function NotInterestedPage() {
+function ProcessingLeadsPage() {
   const [leads,        setLeads]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
   const [modalOpen,    setModalOpen]    = useState(false);
-  const [notification, setNotification] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await apiFetch('/api/v1/leads?status=not_interested&limit=1000');
+      const data = await apiFetch('/api/v1/leads?status=processing&limit=500');
       setLeads(data.data?.leads || data.leads || []);
     } catch (err) {
-      setError('Failed to load leads.');
+      setError('Failed to load processing leads: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -41,32 +40,25 @@ function NotInterestedPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  function notify(msg) {
-    setNotification(msg);
-    setTimeout(() => setNotification(''), 3000);
-  }
-
   async function handleStatusChange(id, newStatus) {
     try {
-      await apiFetch(`/api/v1/leads/${id}`, {
+      await apiFetch(`/api/v1/leads/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
-      if (newStatus !== 'not_interested') {
+      if (newStatus !== 'processing') {
         setLeads(prev => prev.filter(l => (l._id || l.id) !== id));
-        notify('Lead moved to ' + newStatus.replace(/_/g, ' '));
       } else {
         setLeads(prev => prev.map(l => (l._id || l.id) === id ? { ...l, status: newStatus } : l));
       }
-    } catch { setError('Status update failed.'); }
+    } catch { setError('Failed to update status.'); }
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Permanently delete this lead?')) return;
+    if (!window.confirm('Delete this lead?')) return;
     try {
       await apiFetch(`/api/v1/leads/${id}`, { method: 'DELETE' });
       setLeads(prev => prev.filter(l => (l._id || l.id) !== id));
-      notify('Lead deleted');
     } catch { setError('Delete failed.'); }
   }
 
@@ -77,23 +69,21 @@ function NotInterestedPage() {
         body: JSON.stringify({ ids }),
       });
       setLeads(prev => prev.filter(l => !ids.includes(l._id || l.id)));
-      notify(`${ids.length} leads deleted`);
     } catch { setError('Bulk delete failed.'); }
   }
 
-  async function handleBulkReactivate() {
-    const confirm = window.confirm(
-      `Move all ${leads.length} not-interested leads back to "new"? This will re-queue them.`
-    );
-    if (!confirm) return;
+  async function retryOutreach(id) {
     try {
-      await apiFetch('/api/v1/leads/bulk-status', {
+      await apiFetch(`/api/v1/outreach/send-single`, {
         method: 'POST',
-        body: JSON.stringify({ status: 'not_interested', newStatus: 'new' }),
+        body: JSON.stringify({ leadId: id, channels: ['sms'] }),
       });
-      setLeads([]);
-      notify('All leads re-queued as new');
-    } catch { setError('Bulk reactivate failed.'); }
+      setLeads(prev => prev.map(l =>
+        (l._id || l.id) === id
+          ? { ...l, outreachAttempts: (l.outreachAttempts || 0) + 1 }
+          : l
+      ));
+    } catch { setError('Failed to retry outreach.'); }
   }
 
   return (
@@ -104,62 +94,40 @@ function NotInterestedPage() {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '24px' }}>🚫</span>
+            <span style={{ fontSize: '24px' }}>⏳</span>
             <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#111827' }}>
-              Not Interested
+              Processing Leads
             </h1>
           </div>
           <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-            {leads.length.toLocaleString()} lead{leads.length !== 1 ? 's' : ''} marked as not interested
+            {leads.length.toLocaleString()} lead{leads.length !== 1 ? 's' : ''} awaiting response
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            onClick={load}
-            style={{
-              padding: '9px 16px', background: '#f3f4f6', color: '#374151',
-              border: '1px solid #e5e7eb', borderRadius: '9px',
-              fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-            }}
-          >
-            Refresh
-          </button>
-          {leads.length > 0 && (
-            <button
-              onClick={handleBulkReactivate}
-              style={{
-                padding: '9px 16px', background: '#fef3c7', color: '#d97706',
-                border: '1px solid #fde68a', borderRadius: '9px',
-                fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-              }}
-            >
-              Re-queue All as New
-            </button>
-          )}
-        </div>
+        <button
+          onClick={load}
+          style={{
+            padding: '9px 16px', background: '#f3f4f6', color: '#374151',
+            border: '1px solid #e5e7eb', borderRadius: '9px',
+            fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+          }}
+        >
+          Refresh
+        </button>
       </div>
 
       {/* Info banner */}
       <div style={{
-        background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px',
+        background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '12px',
         padding: '14px 18px', marginBottom: '20px',
-        display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#b91c1c',
+        display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#92400e',
       }}>
-        <span>ℹ</span>
+        <span>📬</span>
         <span>
-          These businesses have explicitly declined or been marked as not interested.
-          You can re-queue them or permanently delete to keep your list clean.
+          These leads have been contacted and are waiting for a response.
+          Leads with no reply after 96 hours stay here for manual review.
+          Use the retry button to send a follow-up.
         </span>
       </div>
-
-      {notification && (
-        <div style={{
-          background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px',
-          padding: '10px 16px', marginBottom: '16px', fontSize: '13px', color: '#16a34a',
-        }}>
-          {notification}
-        </div>
-      )}
 
       {error && (
         <div style={{
@@ -173,10 +141,22 @@ function NotInterestedPage() {
       <LeadTable
         leads={leads}
         loading={loading}
-        filters={{ status: 'not_interested' }}
+        filters={{ status: 'processing' }}
         onStatusChange={handleStatusChange}
         onDelete={handleDelete}
         onBulkDelete={handleBulkDelete}
+        extraActions={(lead) => (
+          <button
+            onClick={() => retryOutreach(lead._id || lead.id)}
+            style={{
+              padding: '5px 10px', background: '#dbeafe', color: '#1e40af',
+              border: '1px solid #93c5fd', borderRadius: '6px',
+              fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        )}
       />
 
       <LeadDetailModal
@@ -189,4 +169,4 @@ function NotInterestedPage() {
   );
 }
 
-export default NotInterestedPage;
+export default ProcessingLeadsPage;
