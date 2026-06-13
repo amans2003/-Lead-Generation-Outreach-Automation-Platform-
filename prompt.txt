@@ -1,0 +1,958 @@
+
+🚀 MASTER PROMPT: MERN Stack Lead Generation & Outreach Automation Platform (v2)
+
+🎯 PROJECT OVERVIEW
+You are a Senior Full-Stack Engineer with 10+ years of experience in MERN stack, web scraping, automation, AI integrations, and production-grade deployments. Your task is to architect and build a complete, production-ready Lead Generation & Automated Outreach Platform for a digital marketing agency.
+The platform must:
+Scrape 3,000–3,500 qualified B2C business leads daily from multiple free sources
+Guarantee ZERO duplicate leads — not just today, but across ALL historical data ever scraped
+Use AI to generate personalized outreach messages
+Automatically send outreach via SMS, Email, and WhatsApp
+Intelligently categorize leads based on response (Good Lead / Not Interested / Processing)
+Focus on businesses in categories: Shoes, Clothes, Skincare, Food & Beverages, Jewellery, Supplements, Accessories, Home Decor, Sports & Fitness, Electronics Accessories
+Be fully hosted in production (Docker + cloud-ready)
+⚠️ CRITICAL LANGUAGE RULE: Use JavaScript (.js) ONLY throughout the entire project — frontend and backend. Do NOT use TypeScript (.ts) anywhere. No tsconfig.json, no type annotations, no TypeScript dependencies. Use JSDoc comments for documentation where needed.
+
+🏗️ TECH STACK
+Frontend
+React 18 with Vite
+JavaScript only (.jsx and .js files) — no TypeScript
+TailwindCSS + shadcn/ui components
+React Query (TanStack Query v5) for server state
+Zustand for client state
+React Router v6
+Recharts for analytics dashboards
+Socket.io-client for real-time updates
+PropTypes for runtime prop validation (replaces TypeScript types)
+Backend
+Node.js 20 LTS + Express.js
+JavaScript only (.js files — CommonJS or ESM) — no TypeScript
+MongoDB with Mongoose ODM
+Redis (BullMQ for job queues)
+Socket.io for real-time lead updates
+Puppeteer + Cheerio for scraping (free, no subscriptions)
+puppeteer-extra + puppeteer-extra-plugin-stealth for anti-bot evasion
+Axios for HTTP requests
+Winston for structured logging
+Joi for request validation (replaces Zod/TypeScript)
+Deduplication (Multi-Layer — Zero Duplicates Forever)
+Redis Bloom Filter (redis-bloom / ioredis with bloom commands) — ultra-fast in-memory lookup
+MongoDB unique index on normalized phone number — database-level enforcement
+MongoDB unique index on normalized email — secondary enforcement
+Daily Scrape Registry — tracks every phone/email ever scraped across all time
+Cross-source dedup — same lead from JustDial and Google Maps = 1 lead only
+AI & Messaging
+Claude API (claude-sonnet-4-6) for generating personalized outreach messages
+Twilio (SMS — free trial supports dev, pay-as-you-go in production)
+Nodemailer with Gmail OAuth2 or SMTP (free)
+whatsapp-web.js (unofficial free WhatsApp Web automation via Puppeteer)
+node-cron for scheduling daily scrape jobs
+DevOps & Production
+Docker + Docker Compose
+Nginx as reverse proxy
+PM2 for Node.js process management
+MongoDB Atlas (free tier M0 or paid for production)
+Redis Cloud or self-hosted Redis
+GitHub Actions for CI/CD
+Environment: Ubuntu 22.04 VPS (DigitalOcean / AWS EC2 / Hetzner)
+
+📁 PRODUCTION-GRADE FOLDER STRUCTURE
+All files use .js extension (backend) and .jsx or .js (frontend). Zero .ts or .tsx files anywhere.
+leadgen-platform/
+│
+├── 📁 client/                          # React Frontend (JavaScript)
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── ui/                     # shadcn/ui base components (.jsx)
+│   │   │   ├── layout/
+│   │   │   │   ├── Sidebar.jsx
+│   │   │   │   ├── Topbar.jsx
+│   │   │   │   ├── PageLayout.jsx
+│   │   │   │   └── AuthLayout.jsx
+│   │   │   ├── dashboard/
+│   │   │   │   ├── StatsCard.jsx
+│   │   │   │   ├── LeadChart.jsx
+│   │   │   │   ├── RecentLeads.jsx
+│   │   │   │   └── OutreachProgress.jsx
+│   │   │   ├── leads/
+│   │   │   │   ├── LeadTable.jsx
+│   │   │   │   ├── LeadCard.jsx
+│   │   │   │   ├── LeadFilters.jsx
+│   │   │   │   ├── LeadStatusBadge.jsx
+│   │   │   │   └── LeadDetailModal.jsx
+│   │   │   ├── scraper/
+│   │   │   │   ├── ScraperControl.jsx
+│   │   │   │   ├── ScraperStatus.jsx
+│   │   │   │   └── SourceToggle.jsx
+│   │   │   ├── outreach/
+│   │   │   │   ├── MessagePreview.jsx
+│   │   │   │   ├── OutreachStats.jsx
+│   │   │   │   └── CampaignCard.jsx
+│   │   │   └── common/
+│   │   │       ├── LoadingSpinner.jsx
+│   │   │       ├── EmptyState.jsx
+│   │   │       ├── ErrorBoundary.jsx
+│   │   │       └── ConfirmDialog.jsx
+│   │   ├── pages/
+│   │   │   ├── auth/
+│   │   │   │   ├── LoginPage.jsx
+│   │   │   │   └── RegisterPage.jsx
+│   │   │   ├── DashboardPage.jsx
+│   │   │   ├── LeadsPage.jsx
+│   │   │   ├── GoodLeadsPage.jsx
+│   │   │   ├── NotInterestedPage.jsx
+│   │   │   ├── ProcessingLeadsPage.jsx
+│   │   │   ├── ScraperPage.jsx
+│   │   │   ├── OutreachPage.jsx
+│   │   │   ├── CampaignsPage.jsx
+│   │   │   ├── AnalyticsPage.jsx
+│   │   │   └── SettingsPage.jsx
+│   │   ├── hooks/
+│   │   │   ├── useAuth.js
+│   │   │   ├── useLeads.js
+│   │   │   ├── useScraper.js
+│   │   │   ├── useOutreach.js
+│   │   │   ├── useSocket.js
+│   │   │   └── useRealTimeLeads.js
+│   │   ├── services/
+│   │   │   ├── api.js                  # Axios instance + interceptors
+│   │   │   ├── auth.service.js
+│   │   │   ├── leads.service.js
+│   │   │   ├── scraper.service.js
+│   │   │   └── outreach.service.js
+│   │   ├── store/
+│   │   │   ├── authStore.js
+│   │   │   ├── scraperStore.js
+│   │   │   └── outreachStore.js
+│   │   ├── utils/
+│   │   │   ├── formatters.js
+│   │   │   ├── validators.js
+│   │   │   └── constants.js
+│   │   ├── router/
+│   │   │   ├── AppRouter.jsx
+│   │   │   └── ProtectedRoute.jsx
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── .env.example
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── package.json
+│
+├── 📁 server/                          # Node.js Backend (JavaScript)
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── database.js             # MongoDB connection
+│   │   │   ├── redis.js                # Redis + Bloom Filter setup
+│   │   │   ├── logger.js               # Winston logger
+│   │   │   └── env.js                  # env var loader + validation (Joi)
+│   │   ├── models/
+│   │   │   ├── User.model.js
+│   │   │   ├── Lead.model.js           # unique index on phone + email
+│   │   │   ├── Campaign.model.js
+│   │   │   ├── OutreachLog.model.js
+│   │   │   ├── ScraperJob.model.js
+│   │   │   └── SeenLead.model.js       # Permanent dedup registry (phone hashes)
+│   │   ├── controllers/
+│   │   │   ├── auth.controller.js
+│   │   │   ├── leads.controller.js
+│   │   │   ├── scraper.controller.js
+│   │   │   ├── outreach.controller.js
+│   │   │   ├── campaign.controller.js
+│   │   │   └── analytics.controller.js
+│   │   ├── routes/
+│   │   │   ├── index.js
+│   │   │   ├── auth.routes.js
+│   │   │   ├── leads.routes.js
+│   │   │   ├── scraper.routes.js
+│   │   │   ├── outreach.routes.js
+│   │   │   ├── campaign.routes.js
+│   │   │   └── analytics.routes.js
+│   │   ├── middleware/
+│   │   │   ├── auth.middleware.js      # JWT verification
+│   │   │   ├── rateLimiter.middleware.js
+│   │   │   ├── validate.middleware.js  # Joi schema validation
+│   │   │   ├── errorHandler.middleware.js
+│   │   │   └── requestLogger.middleware.js
+│   │   ├── services/
+│   │   │   ├── scraper/
+│   │   │   │   ├── ScraperOrchestrator.js   # Master coordinator
+│   │   │   │   ├── GoogleMapsScraper.js
+│   │   │   │   ├── JustDialScraper.js
+│   │   │   │   ├── SulekhaScraper.js
+│   │   │   │   ├── IndiaMartScraper.js
+│   │   │   │   ├── TradeIndiaScraper.js
+│   │   │   │   ├── YellowPagesIndiaScraper.js
+│   │   │   │   ├── LinkedInScraper.js
+│   │   │   │   └── BaseScraper.js           # Base class (JS prototype / class syntax)
+│   │   │   ├── outreach/
+│   │   │   │   ├── OutreachOrchestrator.js
+│   │   │   │   ├── SMSService.js            # Twilio
+│   │   │   │   ├── EmailService.js          # Nodemailer
+│   │   │   │   └── WhatsAppService.js       # whatsapp-web.js
+│   │   │   ├── ai/
+│   │   │   │   ├── MessageGenerator.js      # Claude AI message generation
+│   │   │   │   ├── LeadScorer.js            # AI lead quality scoring
+│   │   │   │   └── ResponseClassifier.js    # Classify SMS/email replies
+│   │   │   ├── dedup/
+│   │   │   │   ├── DedupService.js          # Master dedup orchestrator
+│   │   │   │   ├── BloomFilterService.js    # Redis bloom filter wrapper
+│   │   │   │   └── PhoneNormalizer.js       # +91 normalization + hashing
+│   │   │   ├── queue/
+│   │   │   │   ├── scraperQueue.js          # BullMQ scraper jobs
+│   │   │   │   ├── outreachQueue.js         # BullMQ outreach jobs
+│   │   │   │   └── workers/
+│   │   │   │       ├── scraper.worker.js
+│   │   │   │       └── outreach.worker.js
+│   │   │   ├── AuthService.js
+│   │   │   ├── LeadService.js
+│   │   │   └── AnalyticsService.js
+│   │   ├── validators/
+│   │   │   ├── auth.validators.js
+│   │   │   ├── lead.validators.js
+│   │   │   └── outreach.validators.js
+│   │   ├── utils/
+│   │   │   ├── proxyRotator.js         # Free proxy rotation
+│   │   │   ├── userAgentRotator.js
+│   │   │   └── retryHelper.js
+│   │   ├── sockets/
+│   │   │   ├── index.js                # Socket.io setup
+│   │   │   └── leadEvents.js           # Real-time lead events
+│   │   ├── jobs/
+│   │   │   └── dailyScrapeJob.js       # node-cron daily scheduler
+│   │   └── app.js                      # Express app entry
+│   ├── .env
+│   ├── .env.example
+│   └── package.json
+│
+├── 📁 docker/
+│   ├── nginx/
+│   │   └── nginx.conf
+│   ├── Dockerfile.client
+│   ├── Dockerfile.server
+│   └── docker-compose.yml
+│
+├── 📁 scripts/
+│   ├── seed.js                         # Seed test leads
+│   ├── test-scrapers.js                # Test individual scrapers
+│   └── rebuild-bloom-filter.js         # Rebuild bloom filter from DB on restart
+│
+├── .gitignore
+├── README.md
+└── docker-compose.prod.yml
+
+
+🗄️ DATABASE SCHEMAS (Mongoose — JavaScript)
+Lead Model (Lead.model.js)
+// Enforces uniqueness at DB level — phone is the primary dedup key
+const LeadSchema = new mongoose.Schema({
+  businessName:     { type: String, required: true },
+  ownerName:        { type: String },
+  phone:            { type: String, required: true, unique: true, index: true }, // +91XXXXXXXXXX
+  altPhone:         { type: String },
+  email:            { type: String, unique: true, sparse: true, index: true },
+  whatsapp:         { type: String },
+  website:          { type: String },
+  address:          { type: String },
+  city:             { type: String, index: true },
+  state:            { type: String },
+  pincode:          { type: String },
+  category: {
+    type: String,
+    enum: ['shoes','clothes','skincare','food','jewellery',
+           'supplements','accessories','home_decor',
+           'sports_fitness','electronics','other'],
+    index: true
+  },
+  source: {
+    type: String,
+    enum: ['google_maps','justdial','sulekha','indiamart',
+           'tradeindia','yellowpages_india','linkedin','other'],
+    index: true
+  },
+  status: {
+    type: String,
+    enum: ['new','processing','good_lead','not_interested','bounced'],
+    default: 'new',
+    index: true
+  },
+  aiScore:          { type: Number, default: 0, min: 0, max: 100 },
+  outreachAttempts: { type: Number, default: 0 },
+  lastOutreachAt:   { type: Date },
+  lastResponseAt:   { type: Date },
+  lastResponseText: { type: String },
+  outreachLogs:     [{ type: mongoose.Schema.Types.ObjectId, ref: 'OutreachLog' }],
+  isVerified:       { type: Boolean, default: false },
+  tags:             [{ type: String }],
+  scrapedAt:        { type: Date, default: Date.now },
+  scrapeDate:       { type: String, index: true },  // "YYYY-MM-DD" — for daily queries
+}, { timestamps: true });
+
+SeenLead Model (SeenLead.model.js) — Permanent Dedup Registry
+// Stores SHA-256 hash of every normalized phone ever scraped
+// Never deleted — this is the permanent history to prevent re-scraping
+const SeenLeadSchema = new mongoose.Schema({
+  phoneHash:   { type: String, required: true, unique: true, index: true }, // SHA-256 of +91XXXXXXXXXX
+  emailHash:   { type: String, sparse: true, index: true },                 // SHA-256 of lowercase email
+  phone:       { type: String },          // stored for admin reference only
+  firstSeenAt: { type: Date, default: Date.now },
+  source:      { type: String },
+}, { timestamps: false });
+
+ScraperJob Model (ScraperJob.model.js)
+const ScraperJobSchema = new mongoose.Schema({
+  jobDate:        { type: String, required: true, index: true },  // "YYYY-MM-DD"
+  status:         { type: String, enum: ['running','completed','failed','partial'], default: 'running' },
+  targetCount:    { type: Number, default: 3500 },
+  scrapedCount:   { type: Number, default: 0 },
+  newCount:       { type: Number, default: 0 },        // after dedup
+  duplicateCount: { type: Number, default: 0 },        // how many were skipped
+  errorCount:     { type: Number, default: 0 },
+  sourceStats:    { type: Map, of: Number },           // { google_maps: 800, justdial: 600, ... }
+  startedAt:      { type: Date },
+  completedAt:    { type: Date },
+  logs:           [{ type: String }],
+}, { timestamps: true });
+
+
+🔁 ZERO-DUPLICATE SYSTEM (Critical — Read Carefully)
+This is the most important system in the entire platform. Every day must produce 3,000–3,500 completely fresh leads that have NEVER appeared in the database before — not today, not last month, not ever.
+Three-Layer Dedup Architecture
+Scraped Raw Lead
+      ↓
+LAYER 1: PhoneNormalizer.js
+  → Strip spaces, dashes, +91, 0091, leading 0
+  → Convert to canonical +91XXXXXXXXXX format
+  → Reject if not valid 10-digit Indian mobile number
+      ↓
+LAYER 2: BloomFilterService.js (Redis — microsecond lookup)
+  → SHA-256 hash the normalized phone
+  → Check bloom filter: "have we EVER seen this hash?"
+  → YES → discard immediately (probable duplicate)
+  → NO  → proceed to Layer 3
+      ↓
+LAYER 3: MongoDB SeenLead collection (authoritative check)
+  → Query SeenLead by phoneHash
+  → EXISTS → discard + increment duplicate counter
+  → NOT EXISTS → this is a genuinely new lead!
+      ↓
+Save to Lead collection + Insert into SeenLead collection
+Add hash to Redis Bloom Filter
+Emit real-time event via Socket.io
+
+DedupService.js — Core Logic
+// services/dedup/DedupService.js
+const crypto = require('crypto');
+
+class DedupService {
+
+  /**
+   * Check if a phone number has been seen before (across ALL time)
+   * @param {string} rawPhone - raw phone from scraper
+   * @returns {{ isNew: boolean, normalizedPhone: string, phoneHash: string }}
+   */
+  async checkPhone(rawPhone) {
+    const normalized = PhoneNormalizer.normalize(rawPhone);
+    if (!normalized) return { isNew: false }; // invalid number
+
+    const hash = crypto.createHash('sha256').update(normalized).digest('hex');
+
+    // Layer 2: Bloom filter (fast path)
+    const inBloom = await BloomFilterService.mightExist(hash);
+    if (inBloom) {
+      // Bloom filter said "maybe yes" — confirm with DB
+      const inDB = await SeenLead.exists({ phoneHash: hash });
+      if (inDB) return { isNew: false, normalizedPhone: normalized, phoneHash: hash };
+    }
+
+    // Layer 3: Definitive DB check (also catches bloom filter false negatives)
+    const inDB = await SeenLead.exists({ phoneHash: hash });
+    if (inDB) {
+      await BloomFilterService.add(hash); // sync bloom filter
+      return { isNew: false, normalizedPhone: normalized, phoneHash: hash };
+    }
+
+    return { isNew: true, normalizedPhone: normalized, phoneHash: hash };
+  }
+
+  /**
+   * Mark a phone as permanently seen — call AFTER successful lead save
+   */
+  async markAsSeen(phoneHash, phone, source) {
+    await Promise.all([
+      SeenLead.create({ phoneHash, phone, source }),
+      BloomFilterService.add(phoneHash),
+    ]);
+  }
+
+  /**
+   * Bulk check array of raw phones — returns only new ones
+   * Used before batch DB inserts for efficiency
+   */
+  async filterNewPhones(rawPhones) { /* ... */ }
+}
+
+PhoneNormalizer.js
+// services/dedup/PhoneNormalizer.js
+// Handles all Indian number formats:
+// 9876543210 / +919876543210 / 09876543210 / 0091-98765-43210 / 98765 43210
+function normalize(raw) {
+  if (!raw) return null;
+  let phone = String(raw).replace(/[\s\-\(\)\.]/g, '');
+  if (phone.startsWith('+91')) phone = phone.slice(3);
+  else if (phone.startsWith('0091')) phone = phone.slice(4);
+  else if (phone.startsWith('91') && phone.length === 12) phone = phone.slice(2);
+  else if (phone.startsWith('0') && phone.length === 11) phone = phone.slice(1);
+  if (!/^[6-9]\d{9}$/.test(phone)) return null; // invalid Indian mobile
+  return `+91${phone}`;
+}
+
+Bloom Filter Redis Setup (BloomFilterService.js)
+// Uses Redis Stack (RedisBloom module) OR pure-JS bloom filter as fallback
+// Redis Stack is available free on Redis Cloud and as Docker image
+// Bloom filter capacity: 10 million entries, 0.1% false positive rate
+// This handles 10M leads → ~2.7 years of daily scraping
+
+class BloomFilterService {
+  static FILTER_KEY = 'leadgen:seen_phones';
+  static CAPACITY = 10_000_000;
+  static ERROR_RATE = 0.001;
+
+  static async initialize(redisClient) {
+    // BF.RESERVE leadgen:seen_phones 0.001 10000000 NONSCALING
+    // On first run, also populate from SeenLead collection (see rebuild script)
+  }
+
+  static async mightExist(hash) {
+    // BF.EXISTS leadgen:seen_phones <hash>
+  }
+
+  static async add(hash) {
+    // BF.ADD leadgen:seen_phones <hash>
+  }
+}
+
+Bloom Filter Rebuild Script (scripts/rebuild-bloom-filter.js)
+// Run this on server restart or Redis flush to resync bloom filter from MongoDB
+// node scripts/rebuild-bloom-filter.js
+// Streams all SeenLead phoneHash values from MongoDB → adds to Redis bloom filter
+// Handles millions of records using cursor streaming (low memory)
+
+Daily Fresh-Lead Strategy
+To guarantee 3,500 new leads every day even after weeks of scraping:
+Rotate city + category combinations daily — 15 cities × 10 categories = 150 combinations, cycle through them
+Expand search queries — use synonyms, subcategories, neighborhood names
+Track per-source saturation — if JustDial Mumbai shoes is exhausted, switch to JustDial Delhi shoes
+Scrape deeper pagination — page 1 today, page 2 tomorrow for same query
+Query rotation registry — MongoDB collection tracking which {source, city, category, page} combos have been scraped and when
+// models/ScrapedQuery.model.js
+// Tracks exhausted queries to avoid re-scraping same page
+{
+  source: String,       // 'justdial'
+  city: String,         // 'Mumbai'
+  category: String,     // 'shoes'
+  page: Number,         // 1
+  lastScrapedAt: Date,
+  leadCount: Number,    // how many leads this combo produced
+  exhausted: Boolean,   // true if 0 new leads returned
+}
+
+
+🕷️ SCRAPER IMPLEMENTATION GUIDE
+BaseScraper.js (JavaScript Class)
+// services/scraper/BaseScraper.js
+class BaseScraper {
+  constructor(sourceName, categories) {
+    this.sourceName = sourceName;
+    this.categories = categories;
+    this.browser = null;
+  }
+
+  // Must implement in subclass:
+  async scrape(query, city, page = 1) { throw new Error('Not implemented'); }
+
+  // Shared utilities:
+  async randomDelay(min = 2000, max = 5000) {
+    const ms = Math.floor(Math.random() * (max - min + 1)) + min;
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  getRandomUserAgent() { /* returns from pool of 50+ real UA strings */ }
+
+  async launchBrowser() {
+    const puppeteer = require('puppeteer-extra');
+    const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+    puppeteer.use(StealthPlugin());
+    this.browser = await puppeteer.launch({
+      headless: process.env.SCRAPER_HEADLESS === 'true',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+  }
+
+  async closeBrowser() {
+    if (this.browser) await this.browser.close();
+  }
+}
+
+Scraper Sources & Daily Target Distribution
+Source
+Method
+Daily Target
+Notes
+Google Maps
+Puppeteer stealth → search "[category] in [city]" → extract info cards
+800
+Most reliable, rich data
+JustDial
+Axios + Cheerio → justdial.com/[city]/[category]
+600
+Good phone data
+Sulekha
+Axios + Cheerio → sulekha.com/[category]/[city]
+500
+Good for services
+IndiaMart
+Puppeteer → indiamart.com/search.mp4?ss=[keyword]
+400
+B2B suppliers
+TradeIndia
+Axios + Cheerio → tradeindia.com/search/[category]
+300
+Wholesale contacts
+YellowPages India
+Axios + Cheerio → yellowpages.in/[city]/[category]
+500
+Wide coverage
+LinkedIn
+Puppeteer (logged-in session cookie) → Company pages + owner profiles
+200
+B2B quality leads
+Dedup buffer
+Extra scraping to cover duplicates
++500 extra
+Ensures 3500 net new
+
+ScraperOrchestrator.js
+// services/scraper/ScraperOrchestrator.js
+class ScraperOrchestrator {
+  async runDailyScrape(jobId) {
+    // 1. Get today's query rotation plan (fresh city+category+page combos)
+    // 2. Run all scrapers in parallel (Promise.allSettled — one failure won't stop others)
+    // 3. For each raw lead batch → run through DedupService
+    // 4. Save only truly new leads to MongoDB + SeenLead registry
+    // 5. Emit Socket.io progress events every 50 leads
+    // 6. Keep scraping until 3500 NEW leads saved (not just scraped)
+    // 7. Rotate to next batch of queries if current ones are exhausted
+    // 8. Update ScraperJob document with final stats
+    // 9. Trigger outreach queue for today's new leads
+  }
+}
+
+
+🤖 AI INTEGRATION (Claude API — JavaScript)
+MessageGenerator.js
+// services/ai/MessageGenerator.js
+const Anthropic = require('@anthropic-ai/sdk');
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+async function generateOutreachMessage(lead, channel) {
+  const channelRules = {
+    sms: 'Max 160 chars. Casual, Hindi-English mix OK. Include business name. End with CTA.',
+    email: 'Professional tone. Subject line + 3-4 sentence body. Clear value proposition.',
+    whatsapp: 'Conversational. Use 1-2 relevant emojis. Max 4 lines. Friendly but professional.'
+  };
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 300,
+    messages: [{
+      role: 'user',
+      content: `You are a digital marketing consultant in India reaching out to small businesses.
+      
+Generate a ${channel} message for:
+- Business: ${lead.businessName}
+- Category: ${lead.category}  
+- City: ${lead.city}
+- Channel rules: ${channelRules[channel]}
+
+Our agency offers: Social media management, Google Ads, lead generation, website design for ${lead.category} businesses in India.
+
+Make it feel personal and relevant to their specific business type. NOT generic spam.
+Include: "Reply STOP to opt out"
+Return ONLY the message text. No explanations.`
+    }]
+  });
+
+  return response.content[0].text.trim();
+}
+
+ResponseClassifier.js
+// services/ai/ResponseClassifier.js
+async function classifyResponse(responseText) {
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 10,
+    messages: [{
+      role: 'user',
+      content: `Classify this business reply as exactly one word:
+Reply: "${responseText}"
+
+- "positive" = interested, wants to know more, asked a question, said yes/haan/okay
+- "negative" = not interested, stop, remove, no/nahi, angry response
+- "neutral" = unclear, out of office, wrong number, gibberish
+
+Respond with ONLY one word: positive, negative, or neutral`
+    }]
+  });
+
+  const result = response.content[0].text.trim().toLowerCase();
+  if (result === 'positive') return 'good_lead';
+  if (result === 'negative') return 'not_interested';
+  return 'processing';
+}
+
+LeadScorer.js
+// services/ai/LeadScorer.js
+// Scores lead quality 0-100 based on data completeness,
+// business signals (has website, reviews, complete address),
+// and category relevance to agency's services
+
+
+📬 OUTREACH AUTOMATION FLOW
+New Lead Saved (status: "new")
+      ↓
+AI Lead Scoring (0–100)
+      ↓
+Score > 20? → Add to outreach BullMQ queue
+      ↓
+AI generates personalized message per channel
+      ↓
+Send via: SMS (Twilio) + Email (Nodemailer) + WhatsApp (whatsapp-web.js)
+Lead status → "processing"
+      ↓
+Monitor for responses (Twilio webhook / email polling / WhatsApp events)
+      ↓
+AI classifies response text
+      ↓
+┌──────────────────────────────────────────┐
+│ POSITIVE → status: "good_lead"           │
+│ NEGATIVE → status: "not_interested"      │
+│            Add phone to opt-out list     │
+│ NO REPLY after 48h → retry once more     │
+│ NO REPLY after 96h → status: "processing"│
+│            (stays for manual review)     │
+└──────────────────────────────────────────┘
+
+
+🔌 API ENDPOINTS
+Authentication
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+POST   /api/v1/auth/logout
+POST   /api/v1/auth/refresh-token
+GET    /api/v1/auth/me
+
+Leads
+GET    /api/v1/leads                    ?status=&category=&source=&city=&date=&page=&limit=
+GET    /api/v1/leads/:id
+PATCH  /api/v1/leads/:id/status
+DELETE /api/v1/leads/:id
+POST   /api/v1/leads/bulk-delete
+GET    /api/v1/leads/export/csv
+GET    /api/v1/leads/stats/today        # Today's counts by status
+
+Scraper
+POST   /api/v1/scraper/start            # Manual trigger
+POST   /api/v1/scraper/stop
+GET    /api/v1/scraper/status           # Current job status + progress
+GET    /api/v1/scraper/jobs             # Job history
+GET    /api/v1/scraper/dedup-stats      # Total seen leads, duplicates skipped today
+
+Outreach
+POST   /api/v1/outreach/send-single
+POST   /api/v1/outreach/campaign
+GET    /api/v1/outreach/logs
+POST   /api/v1/outreach/webhook/twilio
+POST   /api/v1/outreach/webhook/email
+GET    /api/v1/outreach/whatsapp/qr
+GET    /api/v1/outreach/whatsapp/status
+
+Analytics
+GET    /api/v1/analytics/dashboard
+GET    /api/v1/analytics/leads-by-day
+GET    /api/v1/analytics/conversion-rate
+GET    /api/v1/analytics/source-performance
+GET    /api/v1/analytics/category-performance
+GET    /api/v1/analytics/dedup-history   # Chart of duplicate rate over time
+
+
+🖥️ FRONTEND PAGES & FEATURES
+1. Auth Pages (Login / Register)
+Clean professional form with agency branding
+JWT stored in httpOnly cookie
+Redirect to dashboard on success
+No TypeScript — use PropTypes for component validation
+2. Dashboard
+Real-time stats cards: Total leads today, Good leads, Not Interested, Processing, Duplicates skipped
+Live scraper progress bar with dedup stats (X scraped → Y new → Z duplicates filtered)
+Lead flow chart (daily trend, 30 days)
+Source distribution (pie chart)
+Category breakdown (bar chart)
+Recent leads feed (live updating via Socket.io)
+3. Leads Pages
+All Leads — table with filters (status, category, source, city, date range)
+Good Leads — hot leads, color-coded, export to CSV
+Not Interested — archived, opt-out status visible
+Processing — retry countdown timer, manual override button
+Sortable columns, bulk actions, lead detail side drawer
+4. Scraper Control Page
+Per-source toggle (enable/disable individual scrapers)
+Manual run button with live progress
+Today's dedup report: "Scraped 4,200 raw → 3,500 new → 700 duplicates filtered"
+Query rotation status (which city/category/page combos are running today)
+Source health (last run time, success rate, blocked status)
+5. Outreach Page
+WhatsApp QR code scanner
+Campaign builder: category + channels + AI/manual message toggle
+Message preview panel with AI regenerate button
+Live send queue counter
+Delivery stats per channel
+6. Analytics Page
+Conversion funnel (Scraped → Outreached → Responded → Good Leads)
+Duplicate rate trend (lower = better scraper variety)
+City and category performance heatmap
+Response time distribution
+7. Settings Page
+Profile management
+API key status indicators
+Outreach rate limit controls
+Opt-out/blocklist management
+
+🐳 DOCKER COMPOSE SETUP
+# docker-compose.yml
+version: '3.8'
+services:
+  client:
+    build:
+      context: ./client
+      dockerfile: ../docker/Dockerfile.client
+    ports: ["3000:3000"]
+
+  server:
+    build:
+      context: ./server
+      dockerfile: ../docker/Dockerfile.server
+    ports: ["5000:5000"]
+    env_file: ./server/.env
+    depends_on: [mongodb, redis]
+    volumes:
+      - ./server/whatsapp-sessions:/app/whatsapp-sessions
+      - ./server/logs:/app/logs
+
+  mongodb:
+    image: mongo:7.0
+    volumes: [mongo_data:/data/db]
+    ports: ["27017:27017"]
+
+  # Redis Stack includes RedisBloom module (required for bloom filter)
+  redis:
+    image: redis/redis-stack:latest
+    ports: ["6379:6379", "8001:8001"]
+    volumes: [redis_data:/data]
+
+  nginx:
+    image: nginx:alpine
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on: [client, server]
+
+volumes:
+  mongo_data:
+  redis_data:
+
+
+🔐 COMPLETE .env FILE
+# ─────────────────────────────────────────
+# SERVER
+# ─────────────────────────────────────────
+NODE_ENV=production
+PORT=5000
+CLIENT_URL=https://yourdomain.com
+
+# ─────────────────────────────────────────
+# DATABASE
+# ─────────────────────────────────────────
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/leadgen?retryWrites=true&w=majority
+REDIS_URL=redis://localhost:6379
+
+# ─────────────────────────────────────────
+# JWT AUTH
+# ─────────────────────────────────────────
+JWT_SECRET=your_super_secret_jwt_key_minimum_64_chars
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=your_refresh_secret_key
+JWT_REFRESH_EXPIRES_IN=30d
+
+# ─────────────────────────────────────────
+# AI — ANTHROPIC CLAUDE
+# ─────────────────────────────────────────
+ANTHROPIC_API_KEY=sk-ant-api03-...
+
+# ─────────────────────────────────────────
+# SMS — TWILIO
+# ─────────────────────────────────────────
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+1XXXXXXXXXX
+
+# ─────────────────────────────────────────
+# EMAIL — Gmail OAuth2 (free)
+# ─────────────────────────────────────────
+EMAIL_SERVICE=gmail
+EMAIL_USER=youragency@gmail.com
+GMAIL_CLIENT_ID=xxxxx.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=GOCSPX-xxxxx
+GMAIL_REFRESH_TOKEN=1//xxxxx
+
+# ─────────────────────────────────────────
+# WHATSAPP — whatsapp-web.js (free)
+# ─────────────────────────────────────────
+WHATSAPP_SESSION_PATH=./whatsapp-sessions
+WHATSAPP_HEADLESS=true
+
+# ─────────────────────────────────────────
+# SCRAPING CONFIGURATION
+# ─────────────────────────────────────────
+SCRAPER_DAILY_TARGET=3500
+SCRAPER_BATCH_SIZE=50
+SCRAPER_DELAY_MIN_MS=2000
+SCRAPER_DELAY_MAX_MS=5000
+SCRAPER_CONCURRENT_TABS=3
+SCRAPER_HEADLESS=true
+SCRAPER_SCHEDULE_CRON=0 2 * * *
+PROXY_LIST=
+
+# Target cities (15 major Indian cities — rotate daily)
+SCRAPER_TARGET_CITIES=Mumbai,Delhi,Bangalore,Hyderabad,Chennai,Pune,Ahmedabad,Kolkata,Jaipur,Surat,Lucknow,Kanpur,Nagpur,Indore,Thane
+
+# ─────────────────────────────────────────
+# DEDUPLICATION
+# ─────────────────────────────────────────
+BLOOM_FILTER_CAPACITY=10000000    # 10 million (covers ~7 years)
+BLOOM_FILTER_ERROR_RATE=0.001     # 0.1% false positive rate
+
+# ─────────────────────────────────────────
+# OUTREACH RATE LIMITS
+# ─────────────────────────────────────────
+OUTREACH_SMS_PER_HOUR=200
+OUTREACH_EMAIL_PER_HOUR=500
+OUTREACH_WHATSAPP_PER_HOUR=150
+OUTREACH_DELAY_BETWEEN_MS=3000
+
+# ─────────────────────────────────────────
+# LEAD SCORING
+# ─────────────────────────────────────────
+LEAD_SCORE_GOOD_THRESHOLD=70
+LEAD_SCORE_SKIP_THRESHOLD=20
+
+# ─────────────────────────────────────────
+# LOGGING
+# ─────────────────────────────────────────
+LOG_LEVEL=info
+LOG_DIR=./logs
+
+
+⚙️ IMPORTANT IMPLEMENTATION NOTES
+JavaScript Code Style
+Use ES2020+ features: async/await, optional chaining ?., nullish coalescing ??
+Use class syntax for services and scrapers
+Use CommonJS (require/module.exports) on the backend for compatibility with Node.js ecosystem
+Use ES Modules (import/export) on the frontend (Vite handles this)
+Use JSDoc for documenting functions and objects:
+ /** * @param {string} rawPhone - Raw phone string from scraper * @returns {string|null} Normalized +91XXXXXXXXXX or null if invalid */function normalize(rawPhone) { ... }
+
+
+Use Joi for validation schemas (no Zod, no TypeScript interfaces)
+Use PropTypes on React components for runtime type checking
+Anti-Bot Evasion
+puppeteer-extra-plugin-stealth on all Puppeteer instances
+Rotate 50+ real User Agent strings per request
+Random delays 2000–5000ms between requests
+Rotate free proxies using proxy-chain library
+Maintain session cookies per scraper instance
+Max 1 request/3s to any single domain
+Log and skip when CAPTCHA detected (never crash)
+WhatsApp Setup
+whatsapp-web.js needs a real WhatsApp account (use dedicated business number).
+First launch: GET /api/v1/outreach/whatsapp/qr → shows QR image
+Scan with phone → session stored in WHATSAPP_SESSION_PATH
+Auto-reconnects on server restart. Session persists in Docker volume.
+
+Legal/Compliance
+All outreach messages must include:
+- Your agency name
+- "Reply STOP to opt out" in every message
+- Honor STOP requests within 1 hour (automated)
+- Maintain opt-out blocklist in MongoDB — never contact again
+- Do not scrape or contact people, only businesses
+
+MongoDB Indexes to Create
+// Run on first startup:
+Lead.collection.createIndex({ phone: 1 }, { unique: true });
+Lead.collection.createIndex({ email: 1 }, { unique: true, sparse: true });
+Lead.collection.createIndex({ status: 1, scrapeDate: 1 });
+Lead.collection.createIndex({ category: 1, city: 1 });
+SeenLead.collection.createIndex({ phoneHash: 1 }, { unique: true });
+SeenLead.collection.createIndex({ emailHash: 1 }, { sparse: true });
+ScrapedQuery.collection.createIndex({ source: 1, city: 1, category: 1, page: 1 }, { unique: true });
+
+
+🚀 BUILD ORDER (Step-by-Step)
+Project setup — monorepo, ESLint (no TypeScript), Docker skeleton, .env
+Database models — all Mongoose schemas + indexes
+Dedup system — PhoneNormalizer, BloomFilterService, DedupService, SeenLead model
+Auth system — register/login/JWT/middleware (Joi validation)
+Base scraper + utilities — BaseScraper, userAgentRotator, proxyRotator, retryHelper
+Individual scrapers — build and test one at a time: Google Maps → JustDial → Sulekha → IndiaMart → TradeIndia → YellowPages → LinkedIn
+ScraperOrchestrator — query rotation, dedup integration, daily job logic
+AI service — MessageGenerator, LeadScorer, ResponseClassifier
+Outreach services — SMS (Twilio) → Email (Nodemailer) → WhatsApp (whatsapp-web.js)
+BullMQ queues + workers — scraper queue + outreach queue
+All REST APIs — controllers + routes + Joi validators
+Socket.io — real-time scrape progress + lead events
+React frontend — auth → dashboard → leads pages → scraper page → outreach → analytics → settings
+Docker — containerize frontend + backend + Redis Stack
+Nginx — SSL (Let's Encrypt), reverse proxy config
+Rebuild script — bloom filter rebuild on deploy
+Production deployment — PM2, MongoDB 
+Atlas indexes, Redis persistence
+
+📋 DELIVERABLES CHECKLIST
+[ ] Complete MERN app in JavaScript only — zero .ts files anywhere
+[ ] 3-layer deduplication (PhoneNormalizer + Redis Bloom Filter + MongoDB SeenLead)
+[ ] SeenLead permanent registry — never re-scrape same number across all time
+[ ] Query rotation system — fresh city/category/page combos each day
+[ ] 7 working scrapers with anti-bot evasion (puppeteer-extra-plugin-stealth)
+[ ] AI message generation via Claude API (claude-sonnet-4-6)
+[ ] AI response classification (good_lead / not_interested / processing)
+[ ] SMS automation (Twilio)
+[ ] Email automation (Nodemailer + Gmail OAuth2)
+[ ] WhatsApp automation (whatsapp-web.js)
+[ ] Real-time dashboard with Socket.io (shows dedup stats live)
+[ ] JWT authentication — register + login pages
+[ ] BullMQ job queues for scraping and outreach
+[ ] Daily cron job (2 AM) — auto-scrapes 3,500 net new leads
+[ ] Docker + Nginx production setup (Redis Stack image for bloom filter)
+[ ] Bloom filter rebuild script for server restarts
+[ ] CSV export for leads
+[ ] Mobile-responsive React UI (TailwindCSS)
+[ ] Complete .env with every variable documented
+[ ] JSDoc comments throughout (no TypeScript)
+[ ] Joi validation on all API endpoints
+[ ] Winston logging to files + console
+
+This is a production-grade system built entirely in JavaScript. Every service must handle errors gracefully, log via Winston, retry on failure, and never crash the main process. The deduplication system is the backbone — it must be rock-solid. Build it first, test it thoroughly, and integrate it into every scraper before writing a single lead to the database.
+
+

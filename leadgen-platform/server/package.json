@@ -1,0 +1,46 @@
+{
+  "name": "leadgen-server",
+  "version": "1.0.0",
+  "description": "Lead Generation Platform - Backend",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "worker": "node src/services/queue/workers/scraper.worker.js",
+    "rebuild-bloom": "node scripts/rebuild-bloom-filter.js",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "ioredis": "^5.3.2",
+    "bullmq": "^5.1.1",
+    "socket.io": "^4.6.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "joi": "^17.11.0",
+    "winston": "^3.11.0",
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "puppeteer": "^21.5.2",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "whatsapp-web.js": "^1.23.0",
+    "twilio": "^4.19.3",
+    "nodemailer": "^6.9.7",
+    "@anthropic-ai/sdk": "^0.20.1",
+    "node-cron": "^3.0.3",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.3.1",
+    "proxy-chain": "^2.4.0",
+    "qrcode": "^1.5.3",
+    "csv-writer": "^1.6.0",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
