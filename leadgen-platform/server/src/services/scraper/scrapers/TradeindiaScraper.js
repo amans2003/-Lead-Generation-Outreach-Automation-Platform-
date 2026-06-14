@@ -3,12 +3,10 @@
 /**
  * TradeindiaScraper — scrapes business listings from tradeindia.com
  *
- * Strategy: Axios + Cheerio
- * URL: https://www.tradeindia.com/search/?search_string={keyword}&city={city}&page={page}
+ * Strategy: Puppeteer stealth (TradeIndia is Next.js client-side rendered).
+ * URL: https://www.tradeindia.com/search.html?search_string={keyword}&geo={city}
  */
 
-const axios   = require('axios');
-const cheerio = require('cheerio');
 const BaseScraper = require('./BaseScraper');
 const { CATEGORY_KEYWORDS } = require('../../../utils/constants');
 
@@ -21,33 +19,65 @@ class TradeindiaScraper extends BaseScraper {
 
   async scrape({ city, category, page = 1 }) {
     const keyword = this._pickKeyword(category);
-    const params  = new URLSearchParams({
-      search_string: keyword,
-      city,
-      page: String(page),
-    });
+    const params  = new URLSearchParams({ search_string: keyword, geo: city });
+    if (page > 1) params.set('page', String(page));
 
-    const url = `https://www.tradeindia.com/search/?${params.toString()}`;
+    const url = `https://www.tradeindia.com/search.html?${params.toString()}`;
     logger.debug('[TradeindiaScraper] Fetching ' + url);
 
     try {
-      await this.randomDelay(1500, 3000);
+      await this.launchBrowser();
+      const pg = await this.newPage();
+      await this.randomDelay(500, 1000);
+      await this.navigate(pg, url);
 
-      const response = await axios.get(url, {
-        headers: {
-          'User-Agent':      this.getRandomUserAgent(),
-          'Accept':          'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-IN,en;q=0.9',
-          'Referer':         'https://www.tradeindia.com/',
-        },
-        timeout: 20_000,
-      });
+      await pg.waitForSelector(
+        '[class*="CompanyCard"], [class*="SupplierCard"], [class*="company-card"], .company-name, [class*="companyName"]',
+        { timeout: 20_000 }
+      ).catch(() => {});
+      await this.randomDelay(2000, 3000);
 
-      return this._parse(response.data, city, category);
+      const leads = await pg.evaluate((cityArg, catArg) => {
+        const result = [];
+
+        // TradeIndia uses CSS modules — class names are hashed but data-attributes are stable
+        const cards = document.querySelectorAll(
+          '[class*="CompanyCard"], [class*="SupplierCard"], [data-company-id], li[data-id]'
+        );
+
+        cards.forEach((el) => {
+          try {
+            const nameEl = el.querySelector(
+              '[class*="companyName"], [class*="CompanyName"], [class*="company-name"], h2, h3'
+            );
+            const name = nameEl?.textContent?.trim();
+            if (!name) return;
+
+            const telEl = el.querySelector('[href^="tel:"]');
+            const phone = telEl
+              ? telEl.getAttribute('href').replace('tel:', '').replace(/\D/g, '').slice(-10)
+              : null;
+
+            const addrEl = el.querySelector('[class*="address"], [class*="Address"], [class*="location"]');
+            const address = addrEl?.textContent?.trim() || '';
+
+            const webEl = el.querySelector('a[href^="http"]:not([href*="tradeindia"])');
+            const website = webEl ? webEl.href : undefined;
+
+            result.push({ businessName: name, phone, address, city: cityArg, category: catArg, source: 'tradeindia', website });
+          } catch (_) {}
+        });
+        return result;
+      }, city, category);
+
+      logger.debug('[TradeindiaScraper] Extracted ' + leads.length + ' leads');
+      return leads.filter((l) => l.businessName);
 
     } catch (err) {
-      logger.warn('[TradeindiaScraper] Request failed', { url, error: err.message });
+      logger.warn('[TradeindiaScraper] Failed', { city, category, error: err.message });
       return [];
+    } finally {
+      await this.closeBrowser();
     }
   }
 
@@ -55,50 +85,6 @@ class TradeindiaScraper extends BaseScraper {
     const kws = CATEGORY_KEYWORDS[category];
     if (!kws || kws.length === 0) return category.replace(/_/g, ' ');
     return kws[Math.floor(Math.random() * kws.length)];
-  }
-
-  _parse(html, city, category) {
-    const $ = cheerio.load(html);
-    const leads = [];
-
-    // TradeIndia uses a standard card layout
-    $('.card, .search-result-card, .company-details, [class*="CompanyBox"]').each((_, el) => {
-      try {
-        const $el = $(el);
-
-        const businessName = $el.find('h3, .company-name, .firm-name, h2').first().text().trim();
-        if (!businessName) return;
-
-        const phoneRaw = $el.find('.phone, .tel, [href^="tel:"]').first().text().trim()
-          || $el.find('[href^="tel:"]').first().attr('href')?.replace('tel:', '');
-
-        const phone = this.extractPhone(phoneRaw);
-        if (!phone) return;
-
-        const address = $el.find('.address, .location').first().text().trim();
-        const email   = this.extractEmail(
-          $el.find('.email, [href^="mailto:"]').first().attr('href')?.replace('mailto:', '') || ''
-        );
-        const website = $el.find('a.web, a[target="_blank"]').not('[href*="tradeindia.com"]')
-          .first().attr('href');
-
-        leads.push({
-          businessName,
-          phone,
-          email:   email   || undefined,
-          address: address || '',
-          city,
-          category,
-          source: 'tradeindia',
-          website: website || undefined,
-        });
-      } catch (_) {
-        // skip
-      }
-    });
-
-    logger.debug('[TradeindiaScraper] Parsed ' + leads.length + ' leads');
-    return leads;
   }
 }
 

@@ -27,29 +27,50 @@ class IndiamartScraper extends BaseScraper {
     });
     if (page > 1) params.set('start', String((page - 1) * 25 + 1));
 
-    const url = `https://dir.indiamart.com/search.mp4?${params.toString()}`;
+    const url = `https://dir.indiamart.com/search.mp?${params.toString()}`;
     logger.debug('[IndiamartScraper] Fetching ' + url);
 
     try {
       await this.launchBrowser();
       const pg = await this.newPage();
+      await this.randomDelay(500, 1000); // let frame initialize before navigating
       await this.navigate(pg, url);
 
-      await pg.waitForSelector('.bx, .product-info, .ib-ld', { timeout: 20_000 }).catch(() => {});
+      await pg.waitForSelector('.companyname, .lcname, .bx, .p-company-name', { timeout: 20_000 }).catch(() => {});
       await this.randomDelay(2000, 3500);
 
       const leads = await pg.evaluate((cityArg, catArg) => {
-        const items = document.querySelectorAll('.bx, .product-info');
+        const items = document.querySelectorAll('.bx, .product-box, .prod-box, li[data-qs]');
         const result = [];
 
         items.forEach((el) => {
           try {
-            const name    = (el.querySelector('.m-company-name, .companyname') || {}).textContent?.trim();
-            const phone   = (el.querySelector('.m-phone, .contact-dtls') || {}).textContent?.trim();
-            const address = (el.querySelector('.city, .address-dtls') || {}).textContent?.trim();
-            const website = (el.querySelector('a.website-btn') || {}).href;
+            const name = (
+              el.querySelector('.companyname, .lcname, .p-company-name, .m-company-name') || {}
+            ).textContent?.trim();
+
+            const phoneEl = el.querySelector('[href^="tel:"]');
+            const phone = phoneEl
+              ? phoneEl.getAttribute('href').replace('tel:', '').replace(/\D/g, '').slice(-10)
+              : (el.querySelector('.m-phone, .p-phone, .contact-dtls') || {}).textContent?.trim();
+
+            const address = (
+              el.querySelector('.city, .lcity, .address-dtls, .p-city') || {}
+            ).textContent?.trim();
+
+            const websiteEl = el.querySelector('a.website-btn, a[href*="http"]:not([href*="indiamart"])');
+            const website = websiteEl ? websiteEl.href : undefined;
+
             if (name) {
-              result.push({ businessName: name, phone: phone || null, address: address || '', city: cityArg, category: catArg, source: 'indiamart', website: website || undefined });
+              result.push({
+                businessName: name,
+                phone:        phone || null,
+                address:      address || '',
+                city:         cityArg,
+                category:     catArg,
+                source:       'indiamart',
+                website,
+              });
             }
           } catch (_) {}
         });

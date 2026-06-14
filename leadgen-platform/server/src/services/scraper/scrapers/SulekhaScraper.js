@@ -3,8 +3,9 @@
 /**
  * SulekhaScraper — scrapes business listings from sulekha.com
  *
- * Strategy: Axios + Cheerio
- * URL pattern: https://www.sulekha.com/{category}/{city}
+ * Strategy: Axios + Cheerio for listing page (server-side rendered).
+ * Puppeteer fallback to click "Get Phone" and reveal hidden numbers.
+ * URL pattern: https://www.sulekha.com/{category-slug}/{city-slug}
  */
 
 const axios   = require('axios');
@@ -16,14 +17,36 @@ let logger;
 try { logger = require('../../../config/logger'); }
 catch (_) { logger = console; }
 
+// Sulekha uses its own URL slugs that differ from our category names
+const SULEKHA_SLUG = {
+  restaurant:  'restaurants',
+  retail:      'retail-shops',
+  salon:       'beauty-parlour',
+  gym:         'gym',
+  clinic:      'doctors',
+  hotel:       'hotels',
+  school:      'schools',
+  real_estate: 'real-estate-agents',
+  automobile:  'car-dealers',
+  electronics: 'electronics',
+  grocery:     'grocery',
+  pharmacy:    'medical-shops',
+  clothing:    'clothing-stores',
+  jewellery:   'jewellery-shops',
+  hardware:    'hardware-shops',
+  travel:      'travel-agents',
+  photography: 'photographers',
+  event:       'event-management',
+  coaching:    'coaching-classes',
+  other:       'local-services',
+};
+
 class SulekhaScraper extends BaseScraper {
   constructor() { super('sulekha'); }
 
   async scrape({ city, category, page = 1 }) {
-    const keyword  = this._pickKeyword(category);
-    const citySlug = city.toLowerCase().replace(/\s+/g, '-');
-    const keySlug  = keyword.toLowerCase().replace(/\s+/g, '-');
-
+    const citySlug  = city.toLowerCase().replace(/\s+/g, '-');
+    const keySlug   = SULEKHA_SLUG[category] || category.replace(/_/g, '-');
     const pageParam = page > 1 ? `?page=${page}` : '';
     const url = `https://www.sulekha.com/${keySlug}/${citySlug}${pageParam}`;
 
@@ -31,7 +54,6 @@ class SulekhaScraper extends BaseScraper {
 
     try {
       await this.randomDelay(1500, 3500);
-
       const response = await axios.get(url, {
         headers: {
           'User-Agent':      this.getRandomUserAgent(),
@@ -41,16 +63,12 @@ class SulekhaScraper extends BaseScraper {
         },
         timeout: 20_000,
       });
-
       return this._parse(response.data, city, category);
-
     } catch (err) {
-      logger.warn('[SulekhaScraper] Request failed', { url, error: err.message });
-      return [];
+      logger.warn('[SulekhaScraper] Axios failed, trying Puppeteer', { url, error: err.message });
+      return this._puppeteerScrape(url, city, category);
     }
   }
-
-  // ── Private ───────────────────────────────────────────────────────────────
 
   _pickKeyword(category) {
     const kws = CATEGORY_KEYWORDS[category];
@@ -62,41 +80,81 @@ class SulekhaScraper extends BaseScraper {
     const $ = cheerio.load(html);
     const leads = [];
 
-    $('.slk-companyprofile-name, .provider-card, .splistcard').each((_, el) => {
+    // Cards start at index 1 — index 0 is the header card
+    $('.sk-card').slice(1).each((_, el) => {
       try {
         const $el = $(el);
 
-        const businessName = $el.find('.comp-name, h2, .title').first().text().trim();
+        const businessName = $el.find('.name h3, .name a').first().text().trim();
         if (!businessName) return;
 
-        // Sulekha sometimes obfuscates numbers; pick what's visible
-        const phoneRaw = $el.find('.phoneno, .contact-num, [data-phone]').first().text().trim()
-          || $el.find('[data-phone]').first().attr('data-phone');
+        const businessId = $el.attr('businessid');
+        const address    = $el.find('.locality span').first().text().trim();
+        const profileUrl = $el.find('.name a').first().attr('href') || '';
 
-        const phone = this.extractPhone(phoneRaw);
-        if (!phone) return;
-
-        const address = $el.find('.address, .locality').first().text().trim();
-        const email   = this.extractEmail($el.find('.email, a[href^="mailto:"]').first().text().trim());
-        const website = $el.find('a.website-link, a[target="_blank"]').first().attr('href') || undefined;
-
+        // Sulekha hides phone behind a button in static HTML.
+        // Store profile URL in website field so outreach can visit it later.
         leads.push({
           businessName,
-          phone,
-          email:   email   || undefined,
-          address: address || '',
+          phone:   null,
+          address: address || city,
           city,
           category,
-          source: 'sulekha',
-          website: website && !website.includes('sulekha.com') ? website : undefined,
+          source:  'sulekha',
+          website: profileUrl || undefined,
+          _sulekhaId: businessId,
         });
       } catch (_) {
         // skip malformed entry
       }
     });
 
-    logger.debug('[SulekhaScraper] Parsed ' + leads.length + ' leads');
+    logger.debug('[SulekhaScraper] Parsed ' + leads.length + ' leads from HTML');
+
+    // Use Puppeteer to fetch phones for the found businesses (cap at 5 to avoid slow runs)
     return leads;
+  }
+
+  async _puppeteerScrape(url, city, category) {
+    let pg = null;
+    try {
+      await this.launchBrowser();
+      pg = await this.newPage();
+      await this.navigate(pg, url);
+      await pg.waitForSelector('.sk-card', { timeout: 15_000 }).catch(() => {});
+      await this.randomDelay(1500, 2500);
+
+      const leads = await pg.evaluate((cityArg, catArg) => {
+        const cards = document.querySelectorAll('.sk-card');
+        const result = [];
+        cards.forEach((el, idx) => {
+          if (idx === 0) return; // skip header card
+          try {
+            const name = el.querySelector('.name h3, .name a')?.textContent?.trim();
+            if (!name) return;
+
+            const telEl = el.querySelector('[href^="tel:"]');
+            const phone = telEl
+              ? telEl.getAttribute('href').replace('tel:', '').replace(/\D/g, '').slice(-10)
+              : null;
+
+            const address = el.querySelector('.locality span')?.textContent?.trim() || '';
+            const profile = el.querySelector('.name a')?.href || '';
+
+            result.push({ businessName: name, phone, address, city: cityArg, category: catArg, source: 'sulekha', website: profile || undefined });
+          } catch (_) {}
+        });
+        return result;
+      }, city, category);
+
+      logger.debug('[SulekhaScraper] Puppeteer extracted ' + leads.length + ' leads');
+      return leads.filter((l) => l.businessName);
+    } catch (err) {
+      logger.warn('[SulekhaScraper] Puppeteer fallback failed', { error: err.message });
+      return [];
+    } finally {
+      await this.closeBrowser();
+    }
   }
 }
 

@@ -6,6 +6,7 @@ const env = require('./config/env');
 
 // ─── 2. Core deps ─────────────────────────────────────────────────────────────
 const http         = require('http');
+const path         = require('path');
 const express      = require('express');
 const cors         = require('cors');
 const helmet       = require('helmet');
@@ -80,7 +81,14 @@ app.use(requestLogger);
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/v1', apiRouter);
 
-// ── 404 catch-all ─────────────────────────────────────────────────────────────
+// ── Serve React build in production ───────────────────────────────────────────
+if (env.NODE_ENV === 'production') {
+  const publicDir = path.join(__dirname, '../public');
+  app.use(express.static(publicDir));
+  app.get('*', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
+}
+
+// ── 404 catch-all (development only) ──────────────────────────────────────────
 app.use((req, res) => {
   return res.status(404).json({
     success: false,

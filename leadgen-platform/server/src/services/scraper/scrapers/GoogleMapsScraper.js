@@ -33,7 +33,7 @@ class GoogleMapsScraper extends BaseScraper {
     try {
       await this.launchBrowser();
       page_ = await this.newPage();
-
+      await this.randomDelay(500, 1000);
       await this.navigate(page_, url);
       await this.randomDelay(3000, 5000);
 

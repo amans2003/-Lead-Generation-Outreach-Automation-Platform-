@@ -9,6 +9,9 @@
  * Where a Lead is a plain object matching the Lead model fields.
  */
 
+const fs   = require('fs');
+const path = require('path');
+const os   = require('os');
 const { getRandomUserAgent: _getRandomUA } = require('../../../utils/userAgentRotator');
 const { retry } = require('../../../utils/retryHelper');
 
@@ -66,22 +69,40 @@ class BaseScraper {
 
     const headless = process.env.SCRAPER_HEADLESS !== 'false';
 
+    // Prefer CHROME_EXECUTABLE env var, then scan cache for the newest build
+    const executablePath = process.env.CHROME_EXECUTABLE || this._findChrome();
+
     this.browser = await puppeteer.launch({
       headless,
+      executablePath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
-        '--no-zygote',
-        '--single-process',
         '--disable-gpu',
       ],
     });
 
     logger.debug('[BaseScraper] Browser launched', { source: this.sourceName });
     return this.browser;
+  }
+
+  /** Finds the newest Chrome for Testing binary in the puppeteer cache. */
+  _findChrome() {
+    const cacheDir = path.join(os.homedir(), '.cache', 'puppeteer', 'chrome');
+    if (!fs.existsSync(cacheDir)) return undefined;
+    const builds = fs.readdirSync(cacheDir).sort().reverse(); // newest first
+    for (const build of builds) {
+      const bin = path.join(cacheDir, build, 'chrome-mac-arm64',
+        'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing');
+      if (fs.existsSync(bin)) return bin;
+      // Linux path
+      const linuxBin = path.join(cacheDir, build, 'chrome-linux64', 'chrome');
+      if (fs.existsSync(linuxBin)) return linuxBin;
+    }
+    return undefined;
   }
 
   /** Closes the browser if open. */
