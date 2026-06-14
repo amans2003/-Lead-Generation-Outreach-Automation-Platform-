@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import LeadTable from '../components/leads/LeadTable';
 import LeadDetailModal from '../components/leads/LeadDetailModal';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || '';
 const token = () => localStorage.getItem('token');
 
 async function apiFetch(path, options = {}) {
