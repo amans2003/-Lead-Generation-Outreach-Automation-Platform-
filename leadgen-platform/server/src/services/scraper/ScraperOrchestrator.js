@@ -24,6 +24,8 @@ const logger = require('../../config/logger');
 const env = require('../../config/env');
 const { SOURCES, TARGET_CITIES, CATEGORIES } = require('../../utils/constants');
 
+const VALID_CATEGORIES = new Set(CATEGORIES);
+
 // Socket.io accessor — uses global.io set by app.js (avoids circular-require)
 // The static setIO() method is kept for backwards compat but not required.
 let _io = null;
@@ -185,6 +187,10 @@ class ScraperOrchestrator {
           // 4. Save new leads to MongoDB + register in SeenLead
           for (const leadData of newLeads) {
             try {
+              // Sanitize category — fall back to 'other' if the scraper returned an invalid value
+              const rawCat = leadData.category || queryItem.category;
+              const safeCategory = VALID_CATEGORIES.has(rawCat) ? rawCat : 'other';
+
               const lead = await Lead.create({
                 businessName: leadData.businessName,
                 ownerName:    leadData.ownerName,
@@ -197,7 +203,7 @@ class ScraperOrchestrator {
                 city:         leadData.city     || queryItem.city,
                 state:        leadData.state,
                 pincode:      leadData.pincode,
-                category:     leadData.category || queryItem.category,
+                category:     safeCategory,
                 source:       leadData.source   || queryItem.source,
                 status:       'new',
                 scrapedAt:    new Date(),

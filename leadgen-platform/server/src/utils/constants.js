@@ -52,8 +52,12 @@ const LEAD_STATUSES = [
   'new',
   'processing',
   'good_lead',
+  'contacted',
+  'interested',
   'not_interested',
   'bounced',
+  'converted',
+  'invalid',
 ];
 
 // ---------------------------------------------------------------------------

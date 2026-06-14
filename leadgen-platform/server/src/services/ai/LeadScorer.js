@@ -28,13 +28,10 @@ try {
 
 const MODEL = 'claude-sonnet-4-6';
 
-// Categories with high conversion potential for a D2C/retail automation platform.
+// High-conversion categories — must match Lead.model.js enum exactly.
 const HIGH_VALUE_CATEGORIES = new Set([
-  'retail', 'clothing', 'clothes', 'shoes', 'footwear',
-  'skincare', 'food', 'jewellery', 'jewelry',
-  'supplements', 'accessories', 'home_decor',
-  'sports_fitness', 'electronics', 'grocery',
-  'pharmacy', 'fashion',
+  'retail', 'clothing', 'jewellery', 'electronics', 'grocery',
+  'pharmacy', 'restaurant', 'hotel', 'salon', 'gym',
 ]);
 
 // ---------------------------------------------------------------------------

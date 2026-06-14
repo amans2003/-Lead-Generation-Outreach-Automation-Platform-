@@ -88,7 +88,10 @@ const leadSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['new', 'contacted', 'interested', 'not_interested', 'converted', 'invalid'],
+      enum: [
+        'new', 'processing', 'good_lead', 'contacted',
+        'interested', 'not_interested', 'bounced', 'converted', 'invalid',
+      ],
       default: 'new',
       index: true,
     },
@@ -138,6 +141,14 @@ const leadSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Compound indexes for dashboard filter queries (status+date, city+category, score sorting)
+leadSchema.index({ status: 1, createdAt: -1 });
+leadSchema.index({ city: 1, category: 1, status: 1 });
+leadSchema.index({ status: 1, aiScore: -1 });
+leadSchema.index({ scrapeDate: 1, status: 1 });
+leadSchema.index({ category: 1, source: 1 });
+leadSchema.index({ businessName: 'text', address: 'text' });
 
 const Lead = mongoose.model('Lead', leadSchema);
 

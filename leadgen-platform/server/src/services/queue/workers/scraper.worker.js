@@ -110,7 +110,13 @@ async function processScraperJob(job) {
 // ---------------------------------------------------------------------------
 const scraperWorker = new Worker('scraper-jobs', processScraperJob, {
   connection: redisConnection,
-  concurrency: 1, // Only one scrape job at a time to avoid overloading sources
+  concurrency: 1,
+  // Puppeteer scraping can take several minutes per site — default 30s lock is too short.
+  // 5-minute lock + renew halfway through prevents "could not renew lock" errors.
+  lockDuration:    300_000,   // 5 minutes
+  lockRenewTime:   150_000,   // renew every 2.5 minutes
+  stalledInterval:  60_000,   // check for stalled jobs every 60 seconds
+  maxStalledCount:  1,        // allow one stall before marking failed
 });
 
 // ---------------------------------------------------------------------------
