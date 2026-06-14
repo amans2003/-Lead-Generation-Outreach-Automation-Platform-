@@ -12,7 +12,7 @@ const STAGES = [
   { key: 'good_leads', label: 'Good Leads', color: '#f59e0b' },
 ];
 
-function OutreachProgress({ scraped, outreached, responded, goodLeads }) {
+function OutreachProgress({ scraped = 0, outreached = 0, responded = 0, goodLeads = 0 }) {
   const data = [
     { label: 'Scraped',    value: scraped    || 0, color: '#6366f1' },
     { label: 'Outreached', value: outreached || 0, color: '#3b82f6' },
@@ -101,10 +101,6 @@ OutreachProgress.propTypes = {
   outreached: PropTypes.number,
   responded:  PropTypes.number,
   goodLeads:  PropTypes.number,
-};
-
-OutreachProgress.defaultProps = {
-  scraped: 0, outreached: 0, responded: 0, goodLeads: 0,
 };
 
 export default OutreachProgress;

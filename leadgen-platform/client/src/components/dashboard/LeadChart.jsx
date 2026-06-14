@@ -27,7 +27,7 @@ CustomTooltip.propTypes = {
   label: PropTypes.string,
 };
 
-function LeadChart({ data }) {
+function LeadChart({ data = [] }) {
   const formatted = (data || []).map((d) => ({
     ...d,
     label: (() => {
@@ -88,10 +88,6 @@ LeadChart.propTypes = {
       count: PropTypes.number.isRequired,
     })
   ),
-};
-
-LeadChart.defaultProps = {
-  data: [],
 };
 
 export default LeadChart;

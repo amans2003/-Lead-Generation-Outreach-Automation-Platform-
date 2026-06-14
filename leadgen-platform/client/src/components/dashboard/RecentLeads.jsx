@@ -34,7 +34,7 @@ function timeAgo(dateStr) {
   }
 }
 
-function RecentLeads({ leads }) {
+function RecentLeads({ leads = [] }) {
   const rows = (leads || []).slice(0, 10);
 
   const thStyle = {
@@ -113,10 +113,6 @@ RecentLeads.propTypes = {
       createdAt: PropTypes.string,
     })
   ),
-};
-
-RecentLeads.defaultProps = {
-  leads: [],
 };
 
 export default RecentLeads;

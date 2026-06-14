@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-function StatsCard({ title, value, icon, color, trend }) {
+function StatsCard({ title, value, icon = '📊', color = 'blue', trend = null }) {
   const isPositive = trend >= 0;
 
   const colorMap = {
@@ -68,12 +68,6 @@ StatsCard.propTypes = {
   icon: PropTypes.string,
   color: PropTypes.oneOf(['blue', 'green', 'purple', 'orange', 'red', 'indigo']),
   trend: PropTypes.number,
-};
-
-StatsCard.defaultProps = {
-  icon: '📊',
-  color: 'blue',
-  trend: null,
 };
 
 export default StatsCard;
