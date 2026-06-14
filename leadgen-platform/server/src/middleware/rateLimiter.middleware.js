@@ -31,12 +31,12 @@ const buildHandler = (message) => (req, res) => {
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  standardHeaders: true,  // Return RateLimit-* headers (RFC 6585)
-  legacyHeaders: false,   // Disable X-RateLimit-* headers
+  max: 1000,               // raised from 100 — dashboard + socket.io need headroom
+  standardHeaders: true,
+  legacyHeaders: false,
   message: 'Too many requests. Please try again after 15 minutes.',
   handler: buildHandler('Too many requests. Please try again after 15 minutes.'),
-  skipSuccessfulRequests: false,
+  skipSuccessfulRequests: true, // only failed requests count against the limit
 });
 
 // ─── Auth limiter (stricter) ──────────────────────────────────────────────────

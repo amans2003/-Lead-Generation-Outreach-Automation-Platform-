@@ -26,12 +26,7 @@ const dashboardRouter = require('./dashboard.routes');
 
 const router = express.Router();
 
-// Apply the general API rate limiter to every /api/v1/* endpoint.
-// Individual feature routers may additionally apply stricter limiters
-// (e.g. authLimiter, scraperLimiter) on specific routes.
-router.use(apiLimiter);
-
-// ─── Health-check ─────────────────────────────────────────────────────────────
+// ─── Health-check (no rate limit — must come first) ───────────────────────────
 router.get('/health', (req, res) => {
   return res.status(200).json({
     success: true,
@@ -40,6 +35,9 @@ router.get('/health', (req, res) => {
     version: 'v1',
   });
 });
+
+// Apply the general API rate limiter to all routes below this line.
+router.use(apiLimiter);
 
 // ─── Feature routers ──────────────────────────────────────────────────────────
 router.use('/auth',       authRouter);
