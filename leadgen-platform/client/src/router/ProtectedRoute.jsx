@@ -5,7 +5,7 @@ import useAuthStore from '../store/authStore.js';
 import LoadingSpinner from '../components/common/LoadingSpinner.jsx';
 import PageLayout from '../components/layout/PageLayout.jsx';
 
-function ProtectedRoute({ title }) {
+function ProtectedRoute({ title = '' }) {
   const { isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();
 
@@ -30,10 +30,6 @@ function ProtectedRoute({ title }) {
 
 ProtectedRoute.propTypes = {
   title: PropTypes.string,
-};
-
-ProtectedRoute.defaultProps = {
-  title: '',
 };
 
 export default ProtectedRoute;

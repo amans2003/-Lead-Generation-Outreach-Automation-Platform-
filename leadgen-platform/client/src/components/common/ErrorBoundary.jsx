@@ -25,7 +25,7 @@ class ErrorBoundary extends React.Component {
 
   render() {
     const { hasError, error } = this.state;
-    const { children, fallback } = this.props;
+    const { children, fallback = null } = this.props;
 
     if (hasError) {
       if (fallback) {
@@ -71,10 +71,6 @@ class ErrorBoundary extends React.Component {
 ErrorBoundary.propTypes = {
   children: PropTypes.node.isRequired,
   fallback: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-};
-
-ErrorBoundary.defaultProps = {
-  fallback: null,
 };
 
 export default ErrorBoundary;

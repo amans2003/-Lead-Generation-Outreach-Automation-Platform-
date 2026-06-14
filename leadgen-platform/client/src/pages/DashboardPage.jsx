@@ -1,20 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import api from '../services/api';
 import StatsCard from '../components/dashboard/StatsCard';
 import LeadChart from '../components/dashboard/LeadChart';
 import OutreachProgress from '../components/dashboard/OutreachProgress';
 import RecentLeads from '../components/dashboard/RecentLeads';
 
-const API = import.meta.env.VITE_API_URL || '';
-const token = () => localStorage.getItem('token');
-
-async function apiFetch(path) {
-  const res = await fetch(API + path, {
-    headers: { Authorization: 'Bearer ' + token() },
-  });
-  if (!res.ok) throw new Error('API error');
-  return res.json();
-}
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
 
 function LiveBar({ scraped, target, message }) {
   const pct = target > 0 ? Math.min(100, Math.round((scraped / target) * 100)) : 0;
@@ -60,19 +52,28 @@ function DashboardPage() {
   const [error, setError] = useState('');
 
   const loadDashboard = useCallback(async () => {
+    setError('');
     try {
-      const [statsData, chartRes, recentRes, funnelRes] = await Promise.all([
-        apiFetch('/api/v1/dashboard/stats'),
-        apiFetch('/api/v1/dashboard/chart?days=30'),
-        apiFetch('/api/v1/leads?limit=10&sort=-createdAt'),
-        apiFetch('/api/v1/dashboard/funnel'),
+      const [statsRes, chartRes, leadsRes, funnelRes] = await Promise.all([
+        api.get('/dashboard/stats'),
+        api.get('/dashboard/chart', { params: { days: 30 } }),
+        api.get('/leads', { params: { limit: 10, sortBy: 'createdAt', sortOrder: 'desc' } }),
+        api.get('/dashboard/funnel'),
       ]);
-      setStats(statsData);
-      setChartData(chartRes.data || []);
-      setRecentLeads(recentRes.data?.leads || recentRes.leads || []);
-      setFunnelData(funnelRes);
+
+      setStats(statsRes.data || {});
+      setChartData(chartRes.data?.data || []);
+      setRecentLeads(
+        leadsRes.data?.data?.leads ||
+        leadsRes.data?.leads ||
+        []
+      );
+      setFunnelData(funnelRes.data || {});
     } catch (err) {
-      setError('Failed to load dashboard data.');
+      // 401 is handled by the api interceptor (auto-refresh or redirect to login)
+      if (err?.response?.status !== 401) {
+        setError('Failed to load dashboard data. Check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -84,39 +85,50 @@ function DashboardPage() {
 
   // Socket.io for live scraper progress
   useEffect(() => {
-    const socket = io(API, { transports: ['websocket', 'polling'] });
+    let socket;
+    try {
+      socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
 
-    socket.on('scraper:progress', (data) => {
-      setScraper(prev => ({ ...prev, ...data }));
-    });
+      socket.on('scraper:progress', (data) => {
+        if (data) setScraper(prev => ({ ...prev, ...data }));
+      });
 
-    socket.on('scraper:started', () => {
-      setScraper(prev => ({ ...prev, running: true }));
-    });
+      socket.on('scraper:started', () => {
+        setScraper(prev => ({ ...prev, running: true }));
+      });
 
-    socket.on('scraper:stopped', () => {
-      setScraper(prev => ({ ...prev, running: false }));
-      loadDashboard(); // Refresh stats when scraper stops
-    });
+      socket.on('scraper:completed', () => {
+        setScraper(prev => ({ ...prev, running: false }));
+        loadDashboard();
+      });
 
-    socket.on('lead:new', () => {
-      // Increment new today counter
-      setStats(prev => ({
-        ...prev,
-        totalLeads: prev.totalLeads + 1,
-        newToday: prev.newToday + 1,
-      }));
-    });
+      socket.on('scraper:stopped', () => {
+        setScraper(prev => ({ ...prev, running: false }));
+        loadDashboard();
+      });
 
-    return () => socket.disconnect();
+      socket.on('lead:new', () => {
+        setStats(prev => ({
+          ...prev,
+          totalLeads: (prev.totalLeads || 0) + 1,
+          newToday:   (prev.newToday   || 0) + 1,
+        }));
+      });
+    } catch (_) {
+      // socket.io connection failure is non-fatal — dashboard still works
+    }
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
   }, [loadDashboard]);
 
   const STATS_CARDS = [
-    { title: 'Total Leads',  value: stats.totalLeads, icon: '📋', color: 'blue',   trend: stats.trends?.totalLeads },
-    { title: 'New Today',    value: stats.newToday,   icon: '✨', color: 'green',  trend: stats.trends?.newToday },
-    { title: 'Good Leads',   value: stats.goodLeads,  icon: '⭐', color: 'purple', trend: stats.trends?.goodLeads },
-    { title: 'Outreached',   value: stats.outreached, icon: '📤', color: 'orange', trend: stats.trends?.outreached },
-    { title: 'Responded',    value: stats.responded,  icon: '💬', color: 'indigo', trend: stats.trends?.responded },
+    { title: 'Total Leads', value: stats.totalLeads ?? 0, icon: '📋', color: 'blue',   trend: stats.trends?.totalLeads },
+    { title: 'New Today',   value: stats.newToday   ?? 0, icon: '✨', color: 'green',  trend: stats.trends?.newToday },
+    { title: 'Good Leads',  value: stats.goodLeads  ?? 0, icon: '⭐', color: 'purple', trend: stats.trends?.goodLeads },
+    { title: 'Outreached',  value: stats.outreached ?? 0, icon: '📤', color: 'orange', trend: stats.trends?.outreached },
+    { title: 'Responded',   value: stats.responded  ?? 0, icon: '💬', color: 'indigo', trend: stats.trends?.responded },
   ];
 
   if (loading) {
@@ -132,7 +144,6 @@ function DashboardPage() {
 
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      {/* Page header */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: '800', color: '#111827' }}>
           Dashboard
@@ -157,30 +168,26 @@ function DashboardPage() {
         </div>
       )}
 
-      {/* Live scraper progress bar */}
       {scraper.running && (
         <LiveBar scraped={scraper.scraped} target={scraper.target} message={scraper.message} />
       )}
 
-      {/* Stats cards */}
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
         {STATS_CARDS.map(card => (
           <StatsCard key={card.title} {...card} />
         ))}
       </div>
 
-      {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '24px' }}>
         <LeadChart data={chartData} />
         <OutreachProgress
-          scraped={funnelData.scraped || stats.totalLeads}
-          outreached={funnelData.outreached || stats.outreached}
-          responded={funnelData.responded || stats.responded}
-          goodLeads={funnelData.goodLeads || stats.goodLeads}
+          scraped={funnelData.scraped ?? stats.totalLeads ?? 0}
+          outreached={funnelData.outreached ?? stats.outreached ?? 0}
+          responded={funnelData.responded ?? stats.responded ?? 0}
+          goodLeads={funnelData.goodLeads ?? stats.goodLeads ?? 0}
         />
       </div>
 
-      {/* Recent leads */}
       <RecentLeads leads={recentLeads} />
     </div>
   );
